@@ -3,6 +3,8 @@ import { Home, Wrench, Scissors, PartyPopper, Sparkles } from "lucide-react";
 export interface ServiceDefinition {
   name: string;
   tools: string[];
+  photoRequired?: boolean;
+  notesPlaceholder?: string;
 }
 
 export interface CategoryDefinition {
@@ -26,17 +28,27 @@ export const categories: CategoryDefinition[] = [
       { name: "Regular Cleaning", tools: ["Broom", "Mop & Bucket", "Dusting Cloth", "Floor Cleaner"] },
       { name: "Bathroom Cleaning", tools: ["Toilet Brush", "Disinfectant", "Scrub Pads", "Gloves", "Bathroom Cleaner"] },
       { name: "Kitchen Cleaning", tools: ["Degreaser", "Scrub Pads", "Steel Cleaner", "Sink Cleaner", "Gloves"] },
+      { name: "Kitchen Sink Cleaning", tools: ["Scrub Pads", "Sink Cleaner", "Gloves", "Degreaser"] },
       { name: "Sofa Cleaning", tools: ["Upholstery Cleaner", "Steam Cleaner", "Vacuum", "Brush"] },
       { name: "Carpet Cleaning", tools: ["Carpet Shampoo", "Steam Cleaner", "Vacuum", "Stain Remover"] },
-      { name: "Cooking", tools: ["Cooking Utensils", "Stove", "Ingredients", "Cutting Board", "Knives"] },
+      { name: "Mopping", tools: ["Mop & Bucket", "Floor Cleaner", "Gloves"] },
+      { name: "Cooking", tools: ["Cooking Utensils", "Stove", "Ingredients", "Cutting Board", "Knives"], notesPlaceholder: "Please mention the curry/dish that needs to be cooked" },
       { name: "Meal Prep", tools: ["Containers", "Knives", "Cutting Board", "Ingredients"] },
+      { name: "Chopping", tools: ["Knives", "Cutting Board", "Containers"] },
       { name: "Laundry", tools: ["Washing Machine", "Detergent", "Fabric Softener", "Iron", "Hangers"] },
       { name: "Ironing", tools: ["Iron", "Ironing Board", "Starch Spray", "Hangers"] },
+      { name: "Folding Clothes", tools: ["Hangers", "Storage Bags"] },
+      { name: "Arranging Things", tools: ["Storage Boxes", "Labels", "Shelving Units"] },
       { name: "Wardrobe Organization", tools: ["Hangers", "Storage Boxes", "Labels", "Mothballs"] },
       { name: "Home Sanitization", tools: ["Sanitizer Spray", "UV Lamp", "Disinfectant", "PPE Kit", "Fogging Machine"] },
       { name: "Window Cleaning", tools: ["Squeegee", "Glass Cleaner", "Ladder", "Microfiber Cloths"] },
       { name: "Pest Control", tools: ["Pesticide Spray", "Gel Bait", "PPE Kit", "Fogging Machine"] },
       { name: "Water Tank Cleaning", tools: ["Pump", "Cleaning Agent", "Scrub Brush", "Hose"] },
+      { name: "Dusting", tools: ["Dusting Cloth", "Feather Duster", "Step Stool"] },
+      { name: "Dishwashing", tools: ["Dish Soap", "Scrub Pads", "Gloves", "Drying Rack"] },
+      { name: "Balcony Cleaning", tools: ["Broom", "Mop & Bucket", "Glass Cleaner", "Scrub Brush"] },
+      { name: "Fridge Cleaning", tools: ["Cleaning Solution", "Microfiber Cloths", "Baking Soda"] },
+      { name: "Other (specify below)", tools: [] },
     ],
   },
   {
@@ -66,6 +78,7 @@ export const categories: CategoryDefinition[] = [
       { name: "Carpentry Work", tools: ["Saw", "Hammer", "Nails", "Screwdriver Set", "Wood Glue", "Sandpaper"] },
       { name: "Painting", tools: ["Paint Brushes", "Rollers", "Paint", "Primer", "Drop Cloth", "Tape"] },
       { name: "Furniture Assembly", tools: ["Screwdriver Set", "Allen Keys", "Hammer", "Level"] },
+      { name: "Other (specify below)", tools: [] },
     ],
   },
   {
@@ -82,7 +95,7 @@ export const categories: CategoryDefinition[] = [
       { name: "Hair Straightening", tools: ["Straightener", "Heat Protectant", "Comb", "Clips", "Serum"] },
       { name: "Hair Spa Treatment", tools: ["Hair Mask", "Steamer", "Shampoo", "Conditioner", "Towels"] },
       { name: "Keratin Treatment", tools: ["Keratin Solution", "Flat Iron", "Comb", "Gloves", "Cape"] },
-      { name: "Nail Art", tools: ["Nail Polish Set", "Nail Art Brushes", "Dotting Tools", "Base/Top Coat", "UV Lamp"] },
+      { name: "Nail Art", tools: ["Nail Polish Set", "Nail Art Brushes", "Dotting Tools", "Base/Top Coat", "UV Lamp"], photoRequired: true, notesPlaceholder: "Upload a reference photo of the nail art design you want" },
       { name: "Manicure", tools: ["Nail File", "Cuticle Pusher", "Hand Cream", "Nail Polish", "Buffer"] },
       { name: "Pedicure", tools: ["Foot Soak", "Pumice Stone", "Nail Clippers", "Foot Cream", "Nail Polish"] },
       { name: "Facial - Basic", tools: ["Cleanser", "Toner", "Face Pack", "Moisturizer", "Steam Machine"] },
@@ -92,15 +105,16 @@ export const categories: CategoryDefinition[] = [
       { name: "Threading", tools: ["Thread", "Scissors", "Soothing Gel"] },
       { name: "Bridal Makeup", tools: ["Makeup Kit", "Brushes", "Foundation", "Setting Spray", "False Lashes"] },
       { name: "Party Makeup", tools: ["Makeup Kit", "Brushes", "Foundation", "Setting Spray"] },
-      { name: "Mehendi/Henna", tools: ["Henna Cones", "Design Templates", "Oil", "Cotton"] },
+      { name: "Mehendi/Henna", tools: ["Henna Cones", "Design Templates", "Oil", "Cotton"], photoRequired: true, notesPlaceholder: "Upload a reference photo of the mehendi design you want" },
       { name: "Men's Grooming", tools: ["Trimmer", "Shaving Kit", "After-Shave", "Face Wash"] },
       { name: "Massage Therapy", tools: ["Massage Oil", "Towels", "Massage Table", "Hot Stones"] },
+      { name: "Other (specify below)", tools: [] },
     ],
   },
   {
     id: "decoration",
     icon: PartyPopper,
-    label: "Decoration Services",
+    label: "Décor Services",
     description: "Birthday, party, surprise & candlelight dinner décor",
     color: "bg-purple-500/10 text-purple-600",
     services: [
@@ -120,6 +134,7 @@ export const categories: CategoryDefinition[] = [
       { name: "Housewarming Décor", tools: ["Flowers", "Rangoli", "Torans", "Lights", "Welcome Board"] },
       { name: "Festival Décor", tools: ["Lights", "Rangoli", "Flowers", "Diyas", "Torans", "Candles"] },
       { name: "Wedding Décor - Small", tools: ["Flower Arrangements", "Drapes", "Lights", "Stage Setup", "Mandap"] },
+      { name: "Other (specify below)", tools: [] },
     ],
   },
   {
@@ -147,3 +162,9 @@ export const getAllServices = () =>
   categories.flatMap(cat =>
     cat.services.map(s => ({ ...s, categoryId: cat.id, categoryLabel: cat.label }))
   );
+
+// Services that require mandatory photo uploads
+export const PHOTO_REQUIRED_SERVICES = categories
+  .flatMap(cat => cat.services)
+  .filter(s => s.photoRequired)
+  .map(s => s.name);

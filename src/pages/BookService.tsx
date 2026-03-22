@@ -3,9 +3,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, ArrowRight, Check, Upload, Plus, Trash2, MapPin, Clock, Zap, Calendar, Search, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Upload, Plus, Trash2, MapPin, Clock, Zap, Calendar, Search, CheckCircle2, AlertCircle } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
-import { categories, type CategoryDefinition, type ServiceDefinition } from "@/data/services";
+import { categories, PHOTO_REQUIRED_SERVICES, type CategoryDefinition, type ServiceDefinition } from "@/data/services";
 
 const scheduleOptions = [
   { id: "instant", label: "Instant", desc: "ASAP", icon: Zap },
@@ -18,21 +18,21 @@ const scheduleOptions = [
 interface ServiceItem {
   id: number;
   categoryId: string;
-  serviceName: string;
+  serviceNames: string[];
   customService?: string;
   toolsWithUser: string[];
 }
 
-const STEPS = ["Category & Service", "Details & Photos", "Schedule", "For Whom", "Review"];
+const STEPS = ["Category", "Services", "Details & Photos", "Schedule", "For Whom", "Review"];
 
 const BookService = () => {
   const [searchParams] = useSearchParams();
   const initialCat = searchParams.get("category") || "";
   const matchedCat = categories.find(c => c.label === initialCat);
 
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(matchedCat ? 1 : 0);
   const [services, setServices] = useState<ServiceItem[]>([
-    { id: 1, categoryId: matchedCat?.id || "", serviceName: "", toolsWithUser: [] },
+    { id: 1, categoryId: matchedCat?.id || "", serviceNames: [], toolsWithUser: [] },
   ]);
   const [activeServiceIdx, setActiveServiceIdx] = useState(0);
   const [serviceSearch, setServiceSearch] = useState("");
@@ -45,7 +45,6 @@ const BookService = () => {
 
   const activeService = services[activeServiceIdx];
   const selectedCategory = categories.find(c => c.id === activeService?.categoryId);
-  const selectedServiceDef = selectedCategory?.services.find(s => s.name === activeService?.serviceName);
 
   const filteredServices = useMemo(() => {
     if (!selectedCategory) return [];
@@ -59,32 +58,40 @@ const BookService = () => {
 
   const selectCategory = (catId: string) => {
     updateService("categoryId", catId);
-    updateService("serviceName", "");
+    updateService("serviceNames", []);
     updateService("customService", "");
     updateService("toolsWithUser", []);
     setServiceSearch("");
+    setStep(1);
   };
 
-  const selectService = (name: string) => {
-    updateService("serviceName", name);
-    updateService("toolsWithUser", []);
-  };
-
-  const toggleToolWithUser = (tool: string) => {
-    const current = activeService?.toolsWithUser || [];
-    if (current.includes(tool)) {
-      updateService("toolsWithUser", current.filter(t => t !== tool));
+  const toggleService = (name: string) => {
+    const current = activeService?.serviceNames || [];
+    if (current.includes(name)) {
+      updateService("serviceNames", current.filter(n => n !== name));
     } else {
-      updateService("toolsWithUser", [...current, tool]);
+      updateService("serviceNames", [...current, name]);
     }
   };
 
-  const addService = () => {
-    setServices(prev => [...prev, { id: Date.now(), categoryId: "", serviceName: "", toolsWithUser: [] }]);
-    setActiveServiceIdx(services.length);
+  const toggleToolWithUser = (tool: string, svcIdx: number) => {
+    setServices(prev => prev.map((s, i) => {
+      if (i !== svcIdx) return s;
+      const current = s.toolsWithUser;
+      return {
+        ...s,
+        toolsWithUser: current.includes(tool) ? current.filter(t => t !== tool) : [...current, tool],
+      };
+    }));
   };
 
-  const removeService = (idx: number) => {
+  const addServiceGroup = () => {
+    setServices(prev => [...prev, { id: Date.now(), categoryId: "", serviceNames: [], toolsWithUser: [] }]);
+    setActiveServiceIdx(services.length);
+    setStep(0);
+  };
+
+  const removeServiceGroup = (idx: number) => {
     if (services.length <= 1) return;
     setServices(prev => prev.filter((_, i) => i !== idx));
     setActiveServiceIdx(Math.max(0, activeServiceIdx - 1));
@@ -92,31 +99,63 @@ const BookService = () => {
 
   const isOtherService = (name: string) => name === "Other (specify below)" || name === "Custom Request";
 
+  const hasOtherSelected = activeService?.serviceNames.some(n => isOtherService(n));
+
+  // Check if any selected service requires mandatory photos
+  const selectedServiceDefs = useMemo(() => {
+    return services.flatMap(s => {
+      const cat = categories.find(c => c.id === s.categoryId);
+      if (!cat) return [];
+      return s.serviceNames.map(name => cat.services.find(sv => sv.name === name)).filter(Boolean) as ServiceDefinition[];
+    });
+  }, [services]);
+
+  const photoRequiredServices = selectedServiceDefs.filter(s => s.photoRequired);
+  const needsMandatoryPhotos = photoRequiredServices.length > 0;
+
+  // Get context-aware notes placeholder
+  const notesPlaceholders = useMemo(() => {
+    return selectedServiceDefs
+      .filter(s => s.notesPlaceholder)
+      .map(s => s.notesPlaceholder!);
+  }, [selectedServiceDefs]);
+
   const canProceed = () => {
     if (step === 0) {
+      return !!activeService?.categoryId;
+    }
+    if (step === 1) {
       return services.every(s => {
-        if (!s.categoryId || !s.serviceName) return false;
-        if (isOtherService(s.serviceName) && (!s.customService || s.customService.trim() === "")) return false;
+        if (s.serviceNames.length === 0) return false;
+        if (s.serviceNames.some(n => isOtherService(n)) && (!s.customService || s.customService.trim() === "")) return false;
         return true;
       });
     }
-    if (step === 2 && scheduleType !== "instant") return !!scheduleDate;
-    if (step === 3 && bookFor === "other") return otherDetails.name && otherDetails.phone && otherDetails.address;
+    if (step === 2) {
+      // If photo-required services are selected, photos are mandatory
+      if (needsMandatoryPhotos && photos.length === 0) return false;
+      return true;
+    }
+    if (step === 3 && scheduleType !== "instant") return !!scheduleDate;
+    if (step === 4 && bookFor === "other") return otherDetails.name && otherDetails.phone && otherDetails.address;
     return true;
   };
 
-  const estimatedCost = services.length * 499;
+  const estimatedCost = services.reduce((sum, s) => sum + s.serviceNames.length * 499, 0);
 
   // Gather all tools needed for review
   const allToolsForReview = services.flatMap(s => {
     const cat = categories.find(c => c.id === s.categoryId);
-    const svc = cat?.services.find(sv => sv.name === s.serviceName);
-    if (!svc) return [];
-    return svc.tools.map(t => ({
-      tool: t,
-      providedByUser: s.toolsWithUser.includes(t),
-      service: s.serviceName,
-    }));
+    if (!cat) return [];
+    return s.serviceNames.flatMap(name => {
+      const svc = cat.services.find(sv => sv.name === name);
+      if (!svc) return [];
+      return svc.tools.map(t => ({
+        tool: t,
+        providedByUser: s.toolsWithUser.includes(t),
+        service: name,
+      }));
+    });
   });
 
   return (
@@ -155,93 +194,114 @@ const BookService = () => {
               transition={{ duration: 0.3 }}
               className="bg-card rounded-2xl border border-border p-6 sm:p-8 shadow-soft"
             >
-              {/* Step 0: Category & Service */}
+              {/* Step 0: Category */}
               {step === 0 && (
                 <div className="space-y-6">
-                  <h2 className="font-display text-2xl font-bold text-foreground">Select Services</h2>
+                  <h2 className="font-display text-2xl font-bold text-foreground">Choose Category</h2>
 
-                  {/* Service tabs */}
-                  <div className="flex gap-2 overflow-x-auto pb-2">
-                    {services.map((s, i) => (
-                      <button
-                        key={s.id}
-                        onClick={() => { setActiveServiceIdx(i); setServiceSearch(""); }}
-                        className={`shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-full text-sm border transition-colors ${
-                          i === activeServiceIdx ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"
-                        }`}
-                      >
-                        Service {i + 1}
-                        {services.length > 1 && (
-                          <Trash2 className="w-3 h-3 hover:text-destructive" onClick={(e) => { e.stopPropagation(); removeService(i); }} />
-                        )}
-                      </button>
-                    ))}
-                    <button onClick={addService} className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-sm border border-dashed border-border text-muted-foreground hover:border-primary hover:text-primary transition-colors">
-                      <Plus className="w-3 h-3" /> Add
-                    </button>
-                  </div>
-
-                  {/* Category cards */}
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-3 block">Choose Category</label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {categories.map(cat => (
+                  {/* Service group tabs */}
+                  {services.length > 1 && (
+                    <div className="flex gap-2 overflow-x-auto pb-2">
+                      {services.map((s, i) => (
                         <button
-                          key={cat.id}
-                          onClick={() => selectCategory(cat.id)}
-                          className={`p-4 rounded-xl border text-left transition-all ${
-                            activeService?.categoryId === cat.id
-                              ? "border-primary bg-primary/10 shadow-soft"
-                              : "border-border hover:border-primary/30"
+                          key={s.id}
+                          onClick={() => { setActiveServiceIdx(i); setServiceSearch(""); }}
+                          className={`shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-full text-sm border transition-colors ${
+                            i === activeServiceIdx ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"
                           }`}
                         >
-                          <div className={`w-10 h-10 rounded-lg ${cat.color} flex items-center justify-center mb-2`}>
-                            <cat.icon className="w-5 h-5" />
-                          </div>
-                          <div className="text-sm font-semibold text-foreground">{cat.label}</div>
-                          <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{cat.description}</div>
+                          Group {i + 1}
+                          {services.length > 1 && (
+                            <Trash2 className="w-3 h-3 hover:text-destructive" onClick={(e) => { e.stopPropagation(); removeServiceGroup(i); }} />
+                          )}
                         </button>
                       ))}
                     </div>
-                  </div>
-
-                  {/* Services list */}
-                  {selectedCategory && (
-                    <div>
-                      <label className="text-sm font-medium text-foreground mb-2 block">Choose Service</label>
-                      <div className="relative mb-3">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          placeholder="Search services..."
-                          value={serviceSearch}
-                          onChange={e => setServiceSearch(e.target.value)}
-                          className="pl-9"
-                        />
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
-                        {filteredServices.map(svc => (
-                          <button
-                            key={svc.name}
-                            onClick={() => selectService(svc.name)}
-                            className={`flex items-center gap-2 p-3 rounded-lg border text-left text-sm transition-all ${
-                              activeService?.serviceName === svc.name
-                                ? "border-primary bg-primary/10 text-primary font-medium"
-                                : "border-border text-foreground hover:border-primary/30"
-                            }`}
-                          >
-                            {activeService?.serviceName === svc.name && <CheckCircle2 className="w-4 h-4 shrink-0" />}
-                            <span>{svc.name}</span>
-                          </button>
-                        ))}
-                        {filteredServices.length === 0 && (
-                          <p className="text-sm text-muted-foreground col-span-2 py-4 text-center">No services found</p>
-                        )}
-                      </div>
-                    </div>
                   )}
 
-                  {/* Custom service description (required) */}
-                  {activeService?.serviceName && isOtherService(activeService.serviceName) && (
+                  <div className="space-y-3">
+                    {categories.map(cat => (
+                      <button
+                        key={cat.id}
+                        onClick={() => selectCategory(cat.id)}
+                        className={`w-full flex items-center gap-4 p-4 rounded-xl border text-left transition-all ${
+                          activeService?.categoryId === cat.id
+                            ? "border-primary bg-primary/10 shadow-soft"
+                            : "border-border hover:border-primary/30"
+                        }`}
+                      >
+                        <div className={`w-12 h-12 rounded-xl ${cat.color} flex items-center justify-center shrink-0`}>
+                          <cat.icon className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-semibold text-foreground">{cat.label}</div>
+                          <div className="text-xs text-muted-foreground mt-0.5">{cat.description}</div>
+                        </div>
+                        {activeService?.categoryId === cat.id && <CheckCircle2 className="w-5 h-5 text-primary ml-auto shrink-0" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Step 1: Services */}
+              {step === 1 && (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h2 className="font-display text-2xl font-bold text-foreground">Select Services</h2>
+                    <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                      {activeService?.serviceNames.length || 0} selected
+                    </span>
+                  </div>
+
+                  {selectedCategory && (
+                    <p className="text-sm text-muted-foreground">
+                      From <span className="font-medium text-foreground">{selectedCategory.label}</span> — select one or more
+                    </p>
+                  )}
+
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search services..."
+                      value={serviceSearch}
+                      onChange={e => setServiceSearch(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+
+                  <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                    {filteredServices.map(svc => {
+                      const isSelected = activeService?.serviceNames.includes(svc.name);
+                      return (
+                        <button
+                          key={svc.name}
+                          onClick={() => toggleService(svc.name)}
+                          className={`w-full flex items-center gap-3 p-3 rounded-lg border text-left text-sm transition-all ${
+                            isSelected
+                              ? "border-primary bg-primary/10 text-primary font-medium"
+                              : "border-border text-foreground hover:border-primary/30"
+                          }`}
+                        >
+                          <div className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 ${
+                            isSelected ? "bg-primary border-primary" : "border-border"
+                          }`}>
+                            {isSelected && <Check className="w-3 h-3 text-primary-foreground" />}
+                          </div>
+                          <span>{svc.name}</span>
+                          {svc.photoRequired && (
+                            <span className="ml-auto text-[10px] bg-destructive/10 text-destructive px-1.5 py-0.5 rounded">Photo required</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                    {filteredServices.length === 0 && (
+                      <p className="text-sm text-muted-foreground py-4 text-center">No services found</p>
+                    )}
+                  </div>
+
+                  {/* Custom service description (required for Other) */}
+                  {hasOtherSelected && (
                     <div>
                       <label className="text-sm font-medium text-foreground mb-2 block">
                         Describe the service you need <span className="text-destructive">*</span>
@@ -253,21 +313,40 @@ const BookService = () => {
                         rows={3}
                         required
                       />
-                      {activeService?.customService?.trim() === "" || !activeService?.customService ? (
+                      {(!activeService?.customService || activeService.customService.trim() === "") && (
                         <p className="text-xs text-destructive mt-1">This field is required</p>
-                      ) : null}
+                      )}
                     </div>
                   )}
+
+                  {/* Add another category button */}
+                  <button
+                    onClick={addServiceGroup}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-border text-sm text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                  >
+                    <Plus className="w-4 h-4" /> Add services from another category
+                  </button>
                 </div>
               )}
 
-              {/* Step 1: Details & Photos + Tools */}
-              {step === 1 && (
+              {/* Step 2: Details & Photos + Tools */}
+              {step === 2 && (
                 <div className="space-y-6">
                   <h2 className="font-display text-2xl font-bold text-foreground">Details & Photos</h2>
 
+                  {/* Photo upload */}
                   <div>
-                    <label className="text-sm font-medium text-foreground mb-2 block">Upload Photos (optional)</label>
+                    <label className="text-sm font-medium text-foreground mb-2 block">
+                      Upload Photos {needsMandatoryPhotos ? <span className="text-destructive">* Required</span> : "(optional)"}
+                    </label>
+                    {needsMandatoryPhotos && (
+                      <div className="flex items-start gap-2 mb-2 p-2 rounded-lg bg-destructive/5 border border-destructive/20">
+                        <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+                        <p className="text-xs text-destructive">
+                          Photos are required for: {photoRequiredServices.map(s => s.name).join(", ")}
+                        </p>
+                      </div>
+                    )}
                     <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary/50 transition-colors cursor-pointer">
                       <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
                       <p className="text-sm text-muted-foreground">Click or drag to upload photos</p>
@@ -277,49 +356,57 @@ const BookService = () => {
                   {/* Tools section per service */}
                   {services.map((svc, svcIdx) => {
                     const cat = categories.find(c => c.id === svc.categoryId);
-                    const svcDef = cat?.services.find(s => s.name === svc.serviceName);
-                    if (!svcDef || svcDef.tools.length === 0) return null;
-                    return (
-                      <div key={svc.id} className="space-y-3">
-                        <label className="text-sm font-medium text-foreground block">
-                          Tools for: <span className="text-primary">{svc.serviceName}</span>
-                        </label>
-                        <p className="text-xs text-muted-foreground">Select tools you already have. Unselected tools will be brought by the service partner.</p>
-                        <div className="grid grid-cols-2 gap-2">
-                          {svcDef.tools.map(tool => {
-                            const isWithUser = svc.toolsWithUser.includes(tool);
-                            return (
-                              <button
-                                key={tool}
-                                onClick={() => {
-                                  setActiveServiceIdx(svcIdx);
-                                  toggleToolWithUser(tool);
-                                }}
-                                className={`flex items-center gap-2 p-2.5 rounded-lg border text-xs text-left transition-all ${
-                                  isWithUser
-                                    ? "border-accent bg-accent/10 text-accent"
-                                    : "border-border text-muted-foreground"
-                                }`}
-                              >
-                                <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
-                                  isWithUser ? "bg-accent border-accent" : "border-border"
-                                }`}>
-                                  {isWithUser && <Check className="w-3 h-3 text-accent-foreground" />}
-                                </div>
-                                <span>{tool}</span>
-                                {!isWithUser && <span className="ml-auto text-[10px] text-muted-foreground">Partner brings</span>}
-                              </button>
-                            );
-                          })}
+                    if (!cat) return null;
+                    return svc.serviceNames.map(serviceName => {
+                      const svcDef = cat.services.find(s => s.name === serviceName);
+                      if (!svcDef || svcDef.tools.length === 0) return null;
+                      return (
+                        <div key={`${svc.id}-${serviceName}`} className="space-y-3">
+                          <label className="text-sm font-medium text-foreground block">
+                            Tools for: <span className="text-primary">{serviceName}</span>
+                          </label>
+                          <p className="text-xs text-muted-foreground">Select tools you already have. Unselected tools will be brought by the service partner.</p>
+                          <div className="grid grid-cols-2 gap-2">
+                            {svcDef.tools.map(tool => {
+                              const isWithUser = svc.toolsWithUser.includes(tool);
+                              return (
+                                <button
+                                  key={tool}
+                                  onClick={() => toggleToolWithUser(tool, svcIdx)}
+                                  className={`flex items-center gap-2 p-2.5 rounded-lg border text-xs text-left transition-all ${
+                                    isWithUser
+                                      ? "border-accent bg-accent/10 text-accent"
+                                      : "border-border text-muted-foreground"
+                                  }`}
+                                >
+                                  <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
+                                    isWithUser ? "bg-accent border-accent" : "border-border"
+                                  }`}>
+                                    {isWithUser && <Check className="w-3 h-3 text-accent-foreground" />}
+                                  </div>
+                                  <span>{tool}</span>
+                                  {!isWithUser && <span className="ml-auto text-[10px] text-muted-foreground">Partner brings</span>}
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
-                      </div>
-                    );
+                      );
+                    });
                   })}
 
+                  {/* Additional notes with context-aware placeholders */}
                   <div>
                     <label className="text-sm font-medium text-foreground mb-2 block">Additional Notes</label>
+                    {notesPlaceholders.length > 0 && (
+                      <div className="space-y-1 mb-2">
+                        {notesPlaceholders.map((ph, i) => (
+                          <p key={i} className="text-xs text-muted-foreground italic">💡 {ph}</p>
+                        ))}
+                      </div>
+                    )}
                     <Textarea
-                      placeholder="Any special instructions..."
+                      placeholder={notesPlaceholders.length > 0 ? notesPlaceholders[0] : "Any special instructions..."}
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       rows={3}
@@ -328,8 +415,8 @@ const BookService = () => {
                 </div>
               )}
 
-              {/* Step 2: Schedule */}
-              {step === 2 && (
+              {/* Step 3: Schedule */}
+              {step === 3 && (
                 <div className="space-y-6">
                   <h2 className="font-display text-2xl font-bold text-foreground">Choose Timing</h2>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -353,8 +440,8 @@ const BookService = () => {
                 </div>
               )}
 
-              {/* Step 3: For Whom */}
-              {step === 3 && (
+              {/* Step 4: For Whom */}
+              {step === 4 && (
                 <div className="space-y-6">
                   <h2 className="font-display text-2xl font-bold text-foreground">Who Is This For?</h2>
                   <div className="flex gap-3">
@@ -389,8 +476,8 @@ const BookService = () => {
                 </div>
               )}
 
-              {/* Step 4: Review */}
-              {step === 4 && (
+              {/* Step 5: Review */}
+              {step === 5 && (
                 <div className="space-y-6">
                   <h2 className="font-display text-2xl font-bold text-foreground">Review & Confirm</h2>
                   <div className="space-y-3">
@@ -399,7 +486,9 @@ const BookService = () => {
                       return (
                         <div key={s.id} className="bg-muted/50 rounded-xl p-4">
                           <div className="text-sm font-semibold text-foreground">{cat?.label}</div>
-                          <div className="text-sm text-muted-foreground">{isOtherService(s.serviceName) ? s.customService : s.serviceName}</div>
+                          <div className="text-sm text-muted-foreground mt-1">
+                            {s.serviceNames.map(n => isOtherService(n) ? s.customService : n).join(", ")}
+                          </div>
                         </div>
                       );
                     })}
@@ -443,7 +532,7 @@ const BookService = () => {
             </motion.div>
           </AnimatePresence>
 
-          {step < 4 && (
+          {step < 5 && (
             <div className="flex justify-between mt-6">
               <Button variant="ghost" onClick={() => setStep(s => s - 1)} disabled={step === 0}>
                 <ArrowLeft className="w-4 h-4 mr-1" /> Back
