@@ -10,6 +10,7 @@ import Auth from "./pages/Auth.tsx";
 import AdminDashboard from "./pages/AdminDashboard.tsx";
 import PartnerDashboard from "./pages/PartnerDashboard.tsx";
 import CustomerDashboard from "./pages/CustomerDashboard.tsx";
+import Payment from "./pages/Payment.tsx";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/partner" element={<PartnerDashboard />} />
           <Route path="/dashboard" element={<CustomerDashboard />} />
+          <Route path="/payment" element={<Payment />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

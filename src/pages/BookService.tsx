@@ -1,10 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, ArrowRight, Check, Upload, Plus, Trash2, MapPin, Clock, Zap, Calendar, Search, CheckCircle2, AlertCircle } from "lucide-react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { categories, PHOTO_REQUIRED_SERVICES, type CategoryDefinition, type ServiceDefinition } from "@/data/services";
 
 const scheduleOptions = [
@@ -21,27 +21,45 @@ interface ServiceItem {
   serviceNames: string[];
   customService?: string;
   toolsWithUser: string[];
+  noneOfAboveTools: boolean;
 }
 
 const STEPS = ["Category", "Services", "Details & Photos", "Schedule", "For Whom", "Review"];
 
+const SAVED_ADDRESS_KEY = "servibook_saved_address";
+
 const BookService = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const initialCat = searchParams.get("category") || "";
   const matchedCat = categories.find(c => c.label === initialCat);
 
   const [step, setStep] = useState(matchedCat ? 1 : 0);
   const [services, setServices] = useState<ServiceItem[]>([
-    { id: 1, categoryId: matchedCat?.id || "", serviceNames: [], toolsWithUser: [] },
+    { id: 1, categoryId: matchedCat?.id || "", serviceNames: [], toolsWithUser: [], noneOfAboveTools: false },
   ]);
   const [activeServiceIdx, setActiveServiceIdx] = useState(0);
   const [serviceSearch, setServiceSearch] = useState("");
   const [photos, setPhotos] = useState<string[]>([]);
   const [scheduleType, setScheduleType] = useState("instant");
   const [scheduleDate, setScheduleDate] = useState("");
-  const [bookFor, setBookFor] = useState<"self" | "other">("self");
+  const [bookFor, setBookFor] = useState<"self" | "other" | "">("");
+  const [selfAddress, setSelfAddress] = useState("");
   const [otherDetails, setOtherDetails] = useState({ name: "", phone: "", address: "" });
   const [notes, setNotes] = useState("");
+  const [loginPrompt, setLoginPrompt] = useState(false);
+
+  // Load saved address
+  useEffect(() => {
+    const saved = localStorage.getItem(SAVED_ADDRESS_KEY);
+    if (saved) setSelfAddress(saved);
+  }, []);
+
+  // Save address when changed
+  const updateSelfAddress = (addr: string) => {
+    setSelfAddress(addr);
+    if (addr.trim()) localStorage.setItem(SAVED_ADDRESS_KEY, addr);
+  };
 
   const activeService = services[activeServiceIdx];
   const selectedCategory = categories.find(c => c.id === activeService?.categoryId);
@@ -61,6 +79,7 @@ const BookService = () => {
     updateService("serviceNames", []);
     updateService("customService", "");
     updateService("toolsWithUser", []);
+    updateService("noneOfAboveTools", false);
     setServiceSearch("");
     setStep(1);
   };
@@ -68,7 +87,7 @@ const BookService = () => {
   const toggleService = (name: string) => {
     const current = activeService?.serviceNames || [];
     if (current.includes(name)) {
-      updateService("serviceNames", current.filter(n => n !== name));
+      updateService("serviceNames", current.filter((n: string) => n !== name));
     } else {
       updateService("serviceNames", [...current, name]);
     }
@@ -77,16 +96,23 @@ const BookService = () => {
   const toggleToolWithUser = (tool: string, svcIdx: number) => {
     setServices(prev => prev.map((s, i) => {
       if (i !== svcIdx) return s;
-      const current = s.toolsWithUser;
       return {
         ...s,
-        toolsWithUser: current.includes(tool) ? current.filter(t => t !== tool) : [...current, tool],
+        noneOfAboveTools: false,
+        toolsWithUser: s.toolsWithUser.includes(tool) ? s.toolsWithUser.filter(t => t !== tool) : [...s.toolsWithUser, tool],
       };
     }));
   };
 
+  const toggleNoneOfAbove = (svcIdx: number) => {
+    setServices(prev => prev.map((s, i) => {
+      if (i !== svcIdx) return s;
+      return { ...s, noneOfAboveTools: !s.noneOfAboveTools, toolsWithUser: [] };
+    }));
+  };
+
   const addServiceGroup = () => {
-    setServices(prev => [...prev, { id: Date.now(), categoryId: "", serviceNames: [], toolsWithUser: [] }]);
+    setServices(prev => [...prev, { id: Date.now(), categoryId: "", serviceNames: [], toolsWithUser: [], noneOfAboveTools: false }]);
     setActiveServiceIdx(services.length);
     setStep(0);
   };
@@ -98,10 +124,8 @@ const BookService = () => {
   };
 
   const isOtherService = (name: string) => name === "Other (specify below)" || name === "Custom Request";
+  const hasOtherSelected = activeService?.serviceNames.some((n: string) => isOtherService(n));
 
-  const hasOtherSelected = activeService?.serviceNames.some(n => isOtherService(n));
-
-  // Check if any selected service requires mandatory photos
   const selectedServiceDefs = useMemo(() => {
     return services.flatMap(s => {
       const cat = categories.find(c => c.id === s.categoryId);
@@ -113,40 +137,60 @@ const BookService = () => {
   const photoRequiredServices = selectedServiceDefs.filter(s => s.photoRequired);
   const needsMandatoryPhotos = photoRequiredServices.length > 0;
 
-  // Get context-aware notes placeholder
   const notesPlaceholders = useMemo(() => {
     return selectedServiceDefs
       .filter(s => s.notesPlaceholder)
       .map(s => s.notesPlaceholder!);
   }, [selectedServiceDefs]);
 
+  // Check if all services with tools have either selected some tools or "none of above"
+  const allToolsHandled = useMemo(() => {
+    return services.every(s => {
+      const cat = categories.find(c => c.id === s.categoryId);
+      if (!cat) return true;
+      return s.serviceNames.every(name => {
+        const svcDef = cat.services.find(sv => sv.name === name);
+        if (!svcDef || svcDef.tools.length === 0) return true;
+        return s.toolsWithUser.length > 0 || s.noneOfAboveTools;
+      });
+    });
+  }, [services]);
+
   const canProceed = () => {
-    if (step === 0) {
-      return !!activeService?.categoryId;
-    }
+    if (step === 0) return !!activeService?.categoryId;
     if (step === 1) {
       return services.every(s => {
         if (s.serviceNames.length === 0) return false;
-        if (s.serviceNames.some(n => isOtherService(n)) && (!s.customService || s.customService.trim() === "")) return false;
+        if (s.serviceNames.some((n: string) => isOtherService(n)) && (!s.customService || s.customService.trim() === "")) return false;
         return true;
       });
     }
     if (step === 2) {
-      // If photo-required services are selected, photos are mandatory
       if (needsMandatoryPhotos && photos.length === 0) return false;
+      if (!allToolsHandled) return false;
       return true;
     }
     if (step === 3 && scheduleType !== "instant") return !!scheduleDate;
-    if (step === 4 && bookFor === "other") return otherDetails.name && otherDetails.phone && otherDetails.address;
+    if (step === 4) {
+      if (!bookFor) return false;
+      if (bookFor === "self") return !!selfAddress.trim();
+      if (bookFor === "other") return !!(otherDetails.name && otherDetails.phone && otherDetails.address);
+    }
     return true;
   };
 
   const estimatedCost = services.reduce((sum, s) => sum + s.serviceNames.length * 499, 0);
 
-  // Gather all tools needed for review
   const allToolsForReview = services.flatMap(s => {
     const cat = categories.find(c => c.id === s.categoryId);
     if (!cat) return [];
+    if (s.noneOfAboveTools) {
+      return s.serviceNames.flatMap(name => {
+        const svc = cat.services.find(sv => sv.name === name);
+        if (!svc) return [];
+        return svc.tools.map(t => ({ tool: t, providedByUser: false, service: name }));
+      });
+    }
     return s.serviceNames.flatMap(name => {
       const svc = cat.services.find(sv => sv.name === name);
       if (!svc) return [];
@@ -158,8 +202,55 @@ const BookService = () => {
     });
   });
 
+  const handleConfirmBooking = () => {
+    // Prompt login (mock - in production, check auth state)
+    setLoginPrompt(true);
+  };
+
+  const proceedToPayment = () => {
+    navigate("/payment", {
+      state: {
+        estimatedCost,
+        services: services.map(s => ({
+          category: categories.find(c => c.id === s.categoryId)?.label,
+          services: s.serviceNames,
+          customService: s.customService,
+        })),
+        scheduleType,
+        scheduleDate,
+        bookFor,
+        address: bookFor === "self" ? selfAddress : otherDetails.address,
+      },
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-hero">
+      {/* Login prompt modal */}
+      {loginPrompt && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-card rounded-2xl border border-border p-8 max-w-sm w-full shadow-elevated text-center"
+          >
+            <h3 className="font-display text-xl font-bold text-foreground mb-2">Login Required</h3>
+            <p className="text-sm text-muted-foreground mb-6">Please log in or sign up to complete your booking.</p>
+            <div className="space-y-3">
+              <Button variant="hero" className="w-full" asChild>
+                <Link to="/auth?redirect=payment">Log In / Sign Up</Link>
+              </Button>
+              <Button variant="ghost" className="w-full" onClick={() => {
+                setLoginPrompt(false);
+                proceedToPayment();
+              }}>
+                Continue as Guest
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
       <div className="bg-background/80 backdrop-blur-lg border-b border-border/50">
         <div className="container mx-auto flex items-center h-16 px-4 gap-4">
           <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors">
@@ -198,8 +289,6 @@ const BookService = () => {
               {step === 0 && (
                 <div className="space-y-6">
                   <h2 className="font-display text-2xl font-bold text-foreground">Choose Category</h2>
-
-                  {/* Service group tabs */}
                   {services.length > 1 && (
                     <div className="flex gap-2 overflow-x-auto pb-2">
                       {services.map((s, i) => (
@@ -218,7 +307,6 @@ const BookService = () => {
                       ))}
                     </div>
                   )}
-
                   <div className="space-y-3">
                     {categories.map(cat => (
                       <button
@@ -253,23 +341,15 @@ const BookService = () => {
                       {activeService?.serviceNames.length || 0} selected
                     </span>
                   </div>
-
                   {selectedCategory && (
                     <p className="text-sm text-muted-foreground">
                       From <span className="font-medium text-foreground">{selectedCategory.label}</span> — select one or more
                     </p>
                   )}
-
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search services..."
-                      value={serviceSearch}
-                      onChange={e => setServiceSearch(e.target.value)}
-                      className="pl-9"
-                    />
+                    <Input placeholder="Search services..." value={serviceSearch} onChange={e => setServiceSearch(e.target.value)} className="pl-9" />
                   </div>
-
                   <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
                     {filteredServices.map(svc => {
                       const isSelected = activeService?.serviceNames.includes(svc.name);
@@ -278,14 +358,10 @@ const BookService = () => {
                           key={svc.name}
                           onClick={() => toggleService(svc.name)}
                           className={`w-full flex items-center gap-3 p-3 rounded-lg border text-left text-sm transition-all ${
-                            isSelected
-                              ? "border-primary bg-primary/10 text-primary font-medium"
-                              : "border-border text-foreground hover:border-primary/30"
+                            isSelected ? "border-primary bg-primary/10 text-primary font-medium" : "border-border text-foreground hover:border-primary/30"
                           }`}
                         >
-                          <div className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 ${
-                            isSelected ? "bg-primary border-primary" : "border-border"
-                          }`}>
+                          <div className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 ${isSelected ? "bg-primary border-primary" : "border-border"}`}>
                             {isSelected && <Check className="w-3 h-3 text-primary-foreground" />}
                           </div>
                           <span>{svc.name}</span>
@@ -299,8 +375,6 @@ const BookService = () => {
                       <p className="text-sm text-muted-foreground py-4 text-center">No services found</p>
                     )}
                   </div>
-
-                  {/* Custom service description (required for Other) */}
                   {hasOtherSelected && (
                     <div>
                       <label className="text-sm font-medium text-foreground mb-2 block">
@@ -318,8 +392,6 @@ const BookService = () => {
                       )}
                     </div>
                   )}
-
-                  {/* Add another category button */}
                   <button
                     onClick={addServiceGroup}
                     className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-border text-sm text-muted-foreground hover:border-primary hover:text-primary transition-colors"
@@ -363,7 +435,7 @@ const BookService = () => {
                       return (
                         <div key={`${svc.id}-${serviceName}`} className="space-y-3">
                           <label className="text-sm font-medium text-foreground block">
-                            Tools for: <span className="text-primary">{serviceName}</span>
+                            Tools for: <span className="text-primary">{serviceName}</span> <span className="text-destructive">*</span>
                           </label>
                           <p className="text-xs text-muted-foreground">Select tools you already have. Unselected tools will be brought by the service partner.</p>
                           <div className="grid grid-cols-2 gap-2">
@@ -373,29 +445,51 @@ const BookService = () => {
                                 <button
                                   key={tool}
                                   onClick={() => toggleToolWithUser(tool, svcIdx)}
+                                  disabled={svc.noneOfAboveTools}
                                   className={`flex items-center gap-2 p-2.5 rounded-lg border text-xs text-left transition-all ${
-                                    isWithUser
-                                      ? "border-accent bg-accent/10 text-accent"
-                                      : "border-border text-muted-foreground"
+                                    svc.noneOfAboveTools
+                                      ? "border-border text-muted-foreground/50 cursor-not-allowed"
+                                      : isWithUser
+                                        ? "border-accent bg-accent/10 text-accent"
+                                        : "border-border text-muted-foreground"
                                   }`}
                                 >
                                   <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
-                                    isWithUser ? "bg-accent border-accent" : "border-border"
+                                    isWithUser && !svc.noneOfAboveTools ? "bg-accent border-accent" : "border-border"
                                   }`}>
-                                    {isWithUser && <Check className="w-3 h-3 text-accent-foreground" />}
+                                    {isWithUser && !svc.noneOfAboveTools && <Check className="w-3 h-3 text-accent-foreground" />}
                                   </div>
                                   <span>{tool}</span>
-                                  {!isWithUser && <span className="ml-auto text-[10px] text-muted-foreground">Partner brings</span>}
+                                  {!isWithUser && !svc.noneOfAboveTools && <span className="ml-auto text-[10px] text-muted-foreground">Partner brings</span>}
                                 </button>
                               );
                             })}
                           </div>
+                          {/* None of the above */}
+                          <button
+                            onClick={() => toggleNoneOfAbove(svcIdx)}
+                            className={`w-full flex items-center gap-2 p-2.5 rounded-lg border text-xs text-left transition-all ${
+                              svc.noneOfAboveTools
+                                ? "border-primary bg-primary/10 text-primary font-medium"
+                                : "border-border text-muted-foreground hover:border-primary/30"
+                            }`}
+                          >
+                            <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
+                              svc.noneOfAboveTools ? "bg-primary border-primary" : "border-border"
+                            }`}>
+                              {svc.noneOfAboveTools && <Check className="w-3 h-3 text-primary-foreground" />}
+                            </div>
+                            <span>None of the above — Service partner brings everything</span>
+                          </button>
+                          {!svc.noneOfAboveTools && svc.toolsWithUser.length === 0 && (
+                            <p className="text-xs text-destructive">Please select tools you have or choose "None of the above"</p>
+                          )}
                         </div>
                       );
                     });
                   })}
 
-                  {/* Additional notes with context-aware placeholders */}
+                  {/* Additional notes */}
                   <div>
                     <label className="text-sm font-medium text-foreground mb-2 block">Additional Notes</label>
                     {notesPlaceholders.length > 0 && (
@@ -443,7 +537,7 @@ const BookService = () => {
               {/* Step 4: For Whom */}
               {step === 4 && (
                 <div className="space-y-6">
-                  <h2 className="font-display text-2xl font-bold text-foreground">Who Is This For?</h2>
+                  <h2 className="font-display text-2xl font-bold text-foreground">Who Is This For? <span className="text-destructive">*</span></h2>
                   <div className="flex gap-3">
                     {(["self", "other"] as const).map(opt => (
                       <button
@@ -457,20 +551,33 @@ const BookService = () => {
                       </button>
                     ))}
                   </div>
+                  {!bookFor && (
+                    <p className="text-xs text-destructive">Please select who this booking is for</p>
+                  )}
                   {bookFor === "other" && (
                     <div className="space-y-3">
-                      <Input placeholder="Full Name" value={otherDetails.name} onChange={e => setOtherDetails(p => ({ ...p, name: e.target.value }))} />
-                      <Input placeholder="Phone Number" value={otherDetails.phone} onChange={e => setOtherDetails(p => ({ ...p, phone: e.target.value }))} />
+                      <Input placeholder="Full Name *" value={otherDetails.name} onChange={e => setOtherDetails(p => ({ ...p, name: e.target.value }))} />
+                      <Input placeholder="Phone Number *" value={otherDetails.phone} onChange={e => setOtherDetails(p => ({ ...p, phone: e.target.value }))} />
                       <div className="relative">
                         <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                        <Input placeholder="Address" className="pl-9" value={otherDetails.address} onChange={e => setOtherDetails(p => ({ ...p, address: e.target.value }))} />
+                        <Input placeholder="Address *" className="pl-9" value={otherDetails.address} onChange={e => setOtherDetails(p => ({ ...p, address: e.target.value }))} />
                       </div>
                     </div>
                   )}
                   {bookFor === "self" && (
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                      <Input placeholder="Your Address" className="pl-9" />
+                    <div>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Your Address *"
+                          className="pl-9"
+                          value={selfAddress}
+                          onChange={e => updateSelfAddress(e.target.value)}
+                        />
+                      </div>
+                      {selfAddress && (
+                        <p className="text-xs text-muted-foreground mt-1">📍 Address saved for future bookings</p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -515,6 +622,10 @@ const BookService = () => {
                     <span className="text-muted-foreground">Booking for</span>
                     <span className="font-medium text-foreground capitalize">{bookFor === "self" ? "Myself" : otherDetails.name}</span>
                   </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Address</span>
+                    <span className="font-medium text-foreground">{bookFor === "self" ? selfAddress : otherDetails.address}</span>
+                  </div>
 
                   <div className="bg-primary/5 rounded-xl p-5 border border-primary/20">
                     <div className="flex items-center justify-between">
@@ -524,8 +635,8 @@ const BookService = () => {
                     <p className="text-xs text-muted-foreground mt-1">Final cost may vary. Pay via COD, Card, UPI, or Online.</p>
                   </div>
 
-                  <Button variant="hero" size="lg" className="w-full py-6 text-base">
-                    Confirm Booking
+                  <Button variant="hero" size="lg" className="w-full py-6 text-base" onClick={handleConfirmBooking}>
+                    Proceed to Payment
                   </Button>
                 </div>
               )}

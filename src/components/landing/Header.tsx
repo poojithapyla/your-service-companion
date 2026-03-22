@@ -17,9 +17,8 @@ const Header = () => {
         </Link>
 
         <nav className="hidden md:flex items-center gap-8">
-          <a href="#services" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Services</a>
-          <a href="#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">How It Works</a>
           <a href="#categories" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Categories</a>
+          <a href="#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">How It Works</a>
         </nav>
 
         <div className="hidden md:flex items-center gap-3">
@@ -38,7 +37,7 @@ const Header = () => {
 
       {mobileOpen && (
         <div className="md:hidden bg-background border-b border-border px-4 pb-4 space-y-3">
-          <a href="#services" className="block text-sm text-muted-foreground py-2" onClick={() => setMobileOpen(false)}>Services</a>
+          <a href="#categories" className="block text-sm text-muted-foreground py-2" onClick={() => setMobileOpen(false)}>Categories</a>
           <a href="#how-it-works" className="block text-sm text-muted-foreground py-2" onClick={() => setMobileOpen(false)}>How It Works</a>
           <div className="flex gap-2 pt-2">
             <Button variant="ghost" size="sm" className="flex-1" asChild>
