@@ -54,8 +54,8 @@ export const categories: CategoryDefinition[] = [
   {
     id: "technical",
     icon: Wrench,
-    label: "Technical Services",
-    description: "Plumbing, repairs, electrical & appliance servicing",
+    label: "Repairs & Installations",
+    description: "Plumbing, electrical, appliance repair & setup",
     color: "bg-amber-500/10 text-amber-600",
     services: [
       { name: "Plumbing - Leak Fix", tools: ["Pipe Wrench", "Plumber's Tape", "Sealant", "Replacement Pipes"] },
@@ -84,8 +84,8 @@ export const categories: CategoryDefinition[] = [
   {
     id: "personal",
     icon: Scissors,
-    label: "Personal Services",
-    description: "Haircuts, treatments, nail art & grooming",
+    label: "Beauty & Grooming",
+    description: "Haircuts, styling, nail art, facials & spa",
     color: "bg-pink-500/10 text-pink-600",
     services: [
       { name: "Men's Haircut", tools: ["Scissors", "Clippers", "Comb", "Cape", "Spray Bottle"] },
