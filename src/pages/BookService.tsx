@@ -443,6 +443,7 @@ const BookService = () => {
                           <div className="grid grid-cols-2 gap-2">
                             {svcDef.tools.map(tool => {
                               const isWithUser = svc.toolsWithUser.includes(tool);
+                              const emoji = getToolEmoji(tool);
                               return (
                                 <button
                                   key={tool}
@@ -456,13 +457,14 @@ const BookService = () => {
                                         : "border-border text-muted-foreground"
                                   }`}
                                 >
+                                  <span className="text-base shrink-0">{emoji}</span>
                                   <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
                                     isWithUser && !svc.noneOfAboveTools ? "bg-accent border-accent" : "border-border"
                                   }`}>
                                     {isWithUser && !svc.noneOfAboveTools && <Check className="w-3 h-3 text-accent-foreground" />}
                                   </div>
-                                  <span>{tool}</span>
-                                  {!isWithUser && !svc.noneOfAboveTools && <span className="ml-auto text-[10px] text-muted-foreground">Partner brings</span>}
+                                  <span className="flex-1">{tool}</span>
+                                  {!isWithUser && !svc.noneOfAboveTools && <span className="text-[10px] text-muted-foreground">Partner brings</span>}
                                 </button>
                               );
                             })}
