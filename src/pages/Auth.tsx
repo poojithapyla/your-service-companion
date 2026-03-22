@@ -1,0 +1,133 @@
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { motion } from "framer-motion";
+import { ArrowLeft, Mail, Phone, Eye, EyeOff } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+
+const roles = [
+  { id: "customer", label: "Customer", desc: "Book services for yourself or others" },
+  { id: "partner", label: "Service Partner", desc: "Offer your services and earn" },
+  { id: "admin", label: "Admin", desc: "Manage the platform" },
+];
+
+const Auth = () => {
+  const [searchParams] = useSearchParams();
+  const [isSignup, setIsSignup] = useState(searchParams.get("mode") === "signup");
+  const [authMethod, setAuthMethod] = useState<"email" | "phone">("email");
+  const [showPassword, setShowPassword] = useState(false);
+  const [selectedRole, setSelectedRole] = useState(searchParams.get("role") || "customer");
+
+  return (
+    <div className="min-h-screen bg-gradient-hero flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-md"
+      >
+        <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 text-sm transition-colors">
+          <ArrowLeft className="w-4 h-4" /> Back to home
+        </Link>
+
+        <div className="bg-card rounded-2xl border border-border p-8 shadow-elevated">
+          <div className="flex items-center gap-2 mb-6">
+            <div className="w-8 h-8 rounded-lg bg-gradient-warm flex items-center justify-center">
+              <span className="text-primary-foreground font-bold text-sm">SB</span>
+            </div>
+            <span className="font-display text-xl font-bold text-foreground">ServiBook</span>
+          </div>
+
+          <h1 className="font-display text-2xl font-bold text-foreground mb-1">
+            {isSignup ? "Create Account" : "Welcome Back"}
+          </h1>
+          <p className="text-sm text-muted-foreground mb-6">
+            {isSignup ? "Join ServiBook to get started" : "Log in to your account"}
+          </p>
+
+          {/* Role Selection (signup only) */}
+          {isSignup && (
+            <div className="mb-6">
+              <label className="text-sm font-medium text-foreground mb-2 block">I am a</label>
+              <div className="grid grid-cols-3 gap-2">
+                {roles.map(role => (
+                  <button
+                    key={role.id}
+                    onClick={() => setSelectedRole(role.id)}
+                    className={`py-3 px-2 rounded-xl border text-center transition-all ${
+                      selectedRole === role.id ? "border-primary bg-primary/10" : "border-border"
+                    }`}
+                  >
+                    <div className={`text-xs font-semibold ${selectedRole === role.id ? "text-primary" : "text-foreground"}`}>{role.label}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Auth Method Toggle */}
+          <div className="flex bg-muted rounded-lg p-1 mb-6">
+            {(["email", "phone"] as const).map(method => (
+              <button
+                key={method}
+                onClick={() => setAuthMethod(method)}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition-colors ${
+                  authMethod === method ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"
+                }`}
+              >
+                {method === "email" ? <Mail className="w-4 h-4" /> : <Phone className="w-4 h-4" />}
+                {method === "email" ? "Email" : "Phone"}
+              </button>
+            ))}
+          </div>
+
+          <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+            {isSignup && <Input placeholder="Full Name" />}
+            {authMethod === "email" ? (
+              <Input type="email" placeholder="Email address" />
+            ) : (
+              <Input type="tel" placeholder="Phone number" />
+            )}
+            <div className="relative">
+              <Input
+                type={showPassword ? "text" : "password"}
+                placeholder="Password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+
+            <Button variant="hero" className="w-full py-5" type="submit">
+              {isSignup ? "Create Account" : "Log In"}
+            </Button>
+          </form>
+
+          {/* Social Login */}
+          <div className="mt-6">
+            <div className="relative mb-4">
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
+              <div className="relative flex justify-center"><span className="bg-card px-3 text-xs text-muted-foreground">or continue with</span></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Button variant="outline" className="w-full">Google</Button>
+              <Button variant="outline" className="w-full">Apple</Button>
+            </div>
+          </div>
+
+          <p className="text-center text-sm text-muted-foreground mt-6">
+            {isSignup ? "Already have an account?" : "Don't have an account?"}{" "}
+            <button onClick={() => setIsSignup(!isSignup)} className="text-primary font-medium hover:underline">
+              {isSignup ? "Log in" : "Sign up"}
+            </button>
+          </p>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+export default Auth;
