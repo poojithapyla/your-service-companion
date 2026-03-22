@@ -1,10 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
 import { ArrowLeft, Mail, Phone, Eye, EyeOff, Check, AlertCircle } from "lucide-react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { categories } from "@/data/services";
+import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable/index";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 const roles = [
   { id: "customer", label: "Customer", desc: "Book services for yourself or others" },
@@ -13,12 +17,26 @@ const roles = [
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [isSignup, setIsSignup] = useState(searchParams.get("mode") === "signup");
   const [authMethod, setAuthMethod] = useState<"email" | "phone">("email");
   const [showPassword, setShowPassword] = useState(false);
   const [selectedRole, setSelectedRole] = useState(searchParams.get("role") || "customer");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [showCategoryError, setShowCategoryError] = useState(false);
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      const redirect = searchParams.get("redirect");
+      navigate(redirect ? `/${redirect}` : "/dashboard");
+    }
+  }, [user, navigate, searchParams]);
 
   const toggleCategory = (catId: string) => {
     setSelectedCategories(prev =>
@@ -27,13 +45,46 @@ const Auth = () => {
     setShowCategoryError(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSignup && selectedRole === "partner" && selectedCategories.length === 0) {
       setShowCategoryError(true);
       return;
     }
-    // TODO: integrate with auth backend
+    setIsLoading(true);
+    try {
+      if (isSignup) {
+        const credentials = authMethod === "email"
+          ? { email, password, options: { data: { full_name: fullName, role: selectedRole, partner_categories: selectedCategories } } }
+          : { phone, password, options: { data: { full_name: fullName, role: selectedRole, partner_categories: selectedCategories } } };
+        const { error } = await supabase.auth.signUp(credentials);
+        if (error) throw error;
+        toast.success("Account created! Please check your email to verify.");
+      } else {
+        const credentials = authMethod === "email"
+          ? { email, password }
+          : { phone, password };
+        const { error } = await supabase.auth.signInWithPassword(credentials);
+        if (error) throw error;
+        toast.success("Logged in successfully!");
+        navigate("/dashboard");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Authentication failed");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSocialLogin = async (provider: "google" | "apple") => {
+    try {
+      const { error } = await lovable.auth.signInWithOAuth(provider, {
+        redirect_uri: window.location.origin,
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      toast.error(err.message || `${provider} login failed`);
+    }
   };
 
   return (
@@ -134,15 +185,15 @@ const Auth = () => {
             ))}
           </div>
 
-          <form className="space-y-4" onSubmit={handleSubmit}>
-            {isSignup && <Input placeholder="Full Name" />}
+          <form className="space-y-4" onSubmit={handleSubmit} autoComplete="on">
+            {isSignup && <Input placeholder="Full Name" value={fullName} onChange={e => setFullName(e.target.value)} required />}
             {authMethod === "email" ? (
-              <Input type="email" placeholder="Email address" />
+              <Input type="email" placeholder="Email address" value={email} onChange={e => setEmail(e.target.value)} required />
             ) : (
-              <Input type="tel" placeholder="Phone number" />
+              <Input type="tel" placeholder="Phone number" value={phone} onChange={e => setPhone(e.target.value)} required />
             )}
             <div className="relative">
-              <Input type={showPassword ? "text" : "password"} placeholder="Password" />
+              <Input type={showPassword ? "text" : "password"} placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
@@ -152,8 +203,8 @@ const Auth = () => {
               </button>
             </div>
 
-            <Button variant="hero" className="w-full py-5" type="submit">
-              {isSignup ? "Create Account" : "Log In"}
+            <Button variant="hero" className="w-full py-5" type="submit" disabled={isLoading}>
+              {isLoading ? "Please wait..." : isSignup ? "Create Account" : "Log In"}
             </Button>
           </form>
 
@@ -164,8 +215,8 @@ const Auth = () => {
               <div className="relative flex justify-center"><span className="bg-card px-3 text-xs text-muted-foreground">or continue with</span></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <Button variant="outline" className="w-full">Google</Button>
-              <Button variant="outline" className="w-full">Apple</Button>
+              <Button variant="outline" className="w-full" type="button" onClick={() => handleSocialLogin("google")}>Google</Button>
+              <Button variant="outline" className="w-full" type="button" onClick={() => handleSocialLogin("apple")}>Apple</Button>
             </div>
           </div>
 

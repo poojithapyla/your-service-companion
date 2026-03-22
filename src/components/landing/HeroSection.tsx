@@ -2,8 +2,10 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { ArrowRight, Star } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const HeroSection = () => {
+  const { t } = useLanguage();
   return (
     <section className="relative min-h-[90vh] flex items-center bg-gradient-hero overflow-hidden pt-16">
       {/* Decorative blobs */}
@@ -19,7 +21,7 @@ const HeroSection = () => {
             className="inline-flex items-center gap-2 bg-primary/10 rounded-full px-4 py-1.5 mb-6"
           >
             <Star className="w-4 h-4 text-primary" fill="currentColor" />
-            <span className="text-sm font-medium text-primary">Trusted by 10,000+ customers</span>
+            <span className="text-sm font-medium text-primary">{t("hero.badge")}</span>
           </motion.div>
 
           <motion.h1
@@ -28,9 +30,9 @@ const HeroSection = () => {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight text-foreground mb-6"
           >
-            Expert Services,{" "}
-            <span className="text-gradient-warm">Delivered</span>{" "}
-            to Your Doorstep
+            {t("hero.title1")}{" "}
+            <span className="text-gradient-warm">{t("hero.title2")}</span>{" "}
+            {t("hero.title3")}
           </motion.h1>
 
           <motion.p
@@ -39,7 +41,7 @@ const HeroSection = () => {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="text-lg text-muted-foreground mb-10 max-w-xl mx-auto font-body"
           >
-            From home cleaning to personal grooming, book trusted professionals in minutes. Instant or scheduled — your choice.
+            {t("hero.subtitle")}
           </motion.p>
 
           <motion.div
@@ -50,12 +52,12 @@ const HeroSection = () => {
           >
             <Button variant="hero" size="lg" className="text-base px-8 py-6" asChild>
               <Link to="/book">
-                Book a Service <ArrowRight className="ml-1 w-5 h-5" />
+                {t("hero.book")} <ArrowRight className="ml-1 w-5 h-5" />
               </Link>
             </Button>
             <Button variant="hero-outline" size="lg" className="text-base px-8 py-6" asChild>
               <Link to="/auth?mode=signup&role=partner">
-                Become a Partner
+                {t("hero.partner")}
               </Link>
             </Button>
           </motion.div>
@@ -75,9 +77,9 @@ const HeroSection = () => {
               <span className="ml-2">4.9★ Rating</span>
             </div>
             <div className="h-4 w-px bg-border" />
-            <span>50+ Services</span>
+            <span>50+ {t("services")}</span>
             <div className="h-4 w-px bg-border" />
-            <span>500+ Partners</span>
+            <span>500+ {t("partners")}</span>
           </motion.div>
         </div>
       </div>
