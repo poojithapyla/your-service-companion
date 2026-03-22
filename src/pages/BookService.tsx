@@ -1,18 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, ArrowRight, Check, Upload, Plus, Trash2, MapPin, Clock, Zap, Calendar } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Upload, Plus, Trash2, MapPin, Clock, Zap, Calendar, Search, CheckCircle2 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
-
-const categories = [
-  { id: "home", label: "Home Services", services: ["Deep Cleaning", "Cooking", "Laundry", "Wardrobe Organization"] },
-  { id: "technical", label: "Technical Services", services: ["Plumbing", "Electrical", "Appliance Repair", "AC Service"] },
-  { id: "personal", label: "Personal Services", services: ["Haircut", "Hair Treatment", "Nail Art", "Grooming"] },
-  { id: "decoration", label: "Decoration Services", services: ["Birthday Décor", "Party Setup", "Surprise Décor", "Dinner Décor"] },
-  { id: "other", label: "Other / Custom", services: ["Custom Request"] },
-];
+import { categories, type CategoryDefinition, type ServiceDefinition } from "@/data/services";
 
 const scheduleOptions = [
   { id: "instant", label: "Instant", desc: "ASAP", icon: Zap },
@@ -24,22 +17,26 @@ const scheduleOptions = [
 
 interface ServiceItem {
   id: number;
-  category: string;
-  service: string;
+  categoryId: string;
+  serviceName: string;
   customService?: string;
+  toolsWithUser: string[];
 }
 
 const STEPS = ["Category & Service", "Details & Photos", "Schedule", "For Whom", "Review"];
 
 const BookService = () => {
   const [searchParams] = useSearchParams();
+  const initialCat = searchParams.get("category") || "";
+  const matchedCat = categories.find(c => c.label === initialCat);
+
   const [step, setStep] = useState(0);
   const [services, setServices] = useState<ServiceItem[]>([
-    { id: 1, category: searchParams.get("category") || "", service: "" },
+    { id: 1, categoryId: matchedCat?.id || "", serviceName: "", toolsWithUser: [] },
   ]);
   const [activeServiceIdx, setActiveServiceIdx] = useState(0);
+  const [serviceSearch, setServiceSearch] = useState("");
   const [photos, setPhotos] = useState<string[]>([]);
-  const [toolsBy, setToolsBy] = useState<"user" | "provider">("provider");
   const [scheduleType, setScheduleType] = useState("instant");
   const [scheduleDate, setScheduleDate] = useState("");
   const [bookFor, setBookFor] = useState<"self" | "other">("self");
@@ -47,14 +44,43 @@ const BookService = () => {
   const [notes, setNotes] = useState("");
 
   const activeService = services[activeServiceIdx];
-  const selectedCategory = categories.find(c => c.label === activeService?.category);
+  const selectedCategory = categories.find(c => c.id === activeService?.categoryId);
+  const selectedServiceDef = selectedCategory?.services.find(s => s.name === activeService?.serviceName);
 
-  const updateService = (field: keyof ServiceItem, value: string) => {
+  const filteredServices = useMemo(() => {
+    if (!selectedCategory) return [];
+    const q = serviceSearch.toLowerCase();
+    return selectedCategory.services.filter(s => s.name.toLowerCase().includes(q));
+  }, [selectedCategory, serviceSearch]);
+
+  const updateService = (field: keyof ServiceItem, value: any) => {
     setServices(prev => prev.map((s, i) => i === activeServiceIdx ? { ...s, [field]: value } : s));
   };
 
+  const selectCategory = (catId: string) => {
+    updateService("categoryId", catId);
+    updateService("serviceName", "");
+    updateService("customService", "");
+    updateService("toolsWithUser", []);
+    setServiceSearch("");
+  };
+
+  const selectService = (name: string) => {
+    updateService("serviceName", name);
+    updateService("toolsWithUser", []);
+  };
+
+  const toggleToolWithUser = (tool: string) => {
+    const current = activeService?.toolsWithUser || [];
+    if (current.includes(tool)) {
+      updateService("toolsWithUser", current.filter(t => t !== tool));
+    } else {
+      updateService("toolsWithUser", [...current, tool]);
+    }
+  };
+
   const addService = () => {
-    setServices(prev => [...prev, { id: Date.now(), category: "", service: "" }]);
+    setServices(prev => [...prev, { id: Date.now(), categoryId: "", serviceName: "", toolsWithUser: [] }]);
     setActiveServiceIdx(services.length);
   };
 
@@ -64,8 +90,16 @@ const BookService = () => {
     setActiveServiceIdx(Math.max(0, activeServiceIdx - 1));
   };
 
+  const isOtherService = (name: string) => name === "Other (specify below)" || name === "Custom Request";
+
   const canProceed = () => {
-    if (step === 0) return services.every(s => s.category && s.service);
+    if (step === 0) {
+      return services.every(s => {
+        if (!s.categoryId || !s.serviceName) return false;
+        if (isOtherService(s.serviceName) && (!s.customService || s.customService.trim() === "")) return false;
+        return true;
+      });
+    }
     if (step === 2 && scheduleType !== "instant") return !!scheduleDate;
     if (step === 3 && bookFor === "other") return otherDetails.name && otherDetails.phone && otherDetails.address;
     return true;
@@ -73,9 +107,20 @@ const BookService = () => {
 
   const estimatedCost = services.length * 499;
 
+  // Gather all tools needed for review
+  const allToolsForReview = services.flatMap(s => {
+    const cat = categories.find(c => c.id === s.categoryId);
+    const svc = cat?.services.find(sv => sv.name === s.serviceName);
+    if (!svc) return [];
+    return svc.tools.map(t => ({
+      tool: t,
+      providedByUser: s.toolsWithUser.includes(t),
+      service: s.serviceName,
+    }));
+  });
+
   return (
     <div className="min-h-screen bg-gradient-hero">
-      {/* Header */}
       <div className="bg-background/80 backdrop-blur-lg border-b border-border/50">
         <div className="container mx-auto flex items-center h-16 px-4 gap-4">
           <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors">
@@ -85,7 +130,6 @@ const BookService = () => {
         </div>
       </div>
 
-      {/* Steps indicator */}
       <div className="container mx-auto px-4 py-6">
         <div className="flex items-center justify-center gap-2 mb-8 overflow-x-auto">
           {STEPS.map((label, i) => (
@@ -121,7 +165,7 @@ const BookService = () => {
                     {services.map((s, i) => (
                       <button
                         key={s.id}
-                        onClick={() => setActiveServiceIdx(i)}
+                        onClick={() => { setActiveServiceIdx(i); setServiceSearch(""); }}
                         className={`shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-full text-sm border transition-colors ${
                           i === activeServiceIdx ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"
                         }`}
@@ -137,44 +181,87 @@ const BookService = () => {
                     </button>
                   </div>
 
+                  {/* Category cards */}
                   <div>
-                    <label className="text-sm font-medium text-foreground mb-2 block">Category</label>
-                    <select
-                      value={activeService?.category || ""}
-                      onChange={(e) => { updateService("category", e.target.value); updateService("service", ""); }}
-                      className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm"
-                    >
-                      <option value="">Select a category</option>
-                      {categories.map(c => <option key={c.id} value={c.label}>{c.label}</option>)}
-                    </select>
+                    <label className="text-sm font-medium text-foreground mb-3 block">Choose Category</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {categories.map(cat => (
+                        <button
+                          key={cat.id}
+                          onClick={() => selectCategory(cat.id)}
+                          className={`p-4 rounded-xl border text-left transition-all ${
+                            activeService?.categoryId === cat.id
+                              ? "border-primary bg-primary/10 shadow-soft"
+                              : "border-border hover:border-primary/30"
+                          }`}
+                        >
+                          <div className={`w-10 h-10 rounded-lg ${cat.color} flex items-center justify-center mb-2`}>
+                            <cat.icon className="w-5 h-5" />
+                          </div>
+                          <div className="text-sm font-semibold text-foreground">{cat.label}</div>
+                          <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{cat.description}</div>
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
+                  {/* Services list */}
                   {selectedCategory && (
                     <div>
-                      <label className="text-sm font-medium text-foreground mb-2 block">Service</label>
-                      <select
-                        value={activeService?.service || ""}
-                        onChange={(e) => updateService("service", e.target.value)}
-                        className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm"
-                      >
-                        <option value="">Select a service</option>
-                        {selectedCategory.services.map(s => <option key={s} value={s}>{s}</option>)}
-                        <option value="Other">Other (specify below)</option>
-                      </select>
+                      <label className="text-sm font-medium text-foreground mb-2 block">Choose Service</label>
+                      <div className="relative mb-3">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Search services..."
+                          value={serviceSearch}
+                          onChange={e => setServiceSearch(e.target.value)}
+                          className="pl-9"
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
+                        {filteredServices.map(svc => (
+                          <button
+                            key={svc.name}
+                            onClick={() => selectService(svc.name)}
+                            className={`flex items-center gap-2 p-3 rounded-lg border text-left text-sm transition-all ${
+                              activeService?.serviceName === svc.name
+                                ? "border-primary bg-primary/10 text-primary font-medium"
+                                : "border-border text-foreground hover:border-primary/30"
+                            }`}
+                          >
+                            {activeService?.serviceName === svc.name && <CheckCircle2 className="w-4 h-4 shrink-0" />}
+                            <span>{svc.name}</span>
+                          </button>
+                        ))}
+                        {filteredServices.length === 0 && (
+                          <p className="text-sm text-muted-foreground col-span-2 py-4 text-center">No services found</p>
+                        )}
+                      </div>
                     </div>
                   )}
 
-                  {activeService?.service === "Other" && (
-                    <Input
-                      placeholder="Describe the service you need..."
-                      value={activeService?.customService || ""}
-                      onChange={(e) => updateService("customService", e.target.value)}
-                    />
+                  {/* Custom service description (required) */}
+                  {activeService?.serviceName && isOtherService(activeService.serviceName) && (
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-2 block">
+                        Describe the service you need <span className="text-destructive">*</span>
+                      </label>
+                      <Textarea
+                        placeholder="Please describe what service you need in detail..."
+                        value={activeService?.customService || ""}
+                        onChange={(e) => updateService("customService", e.target.value)}
+                        rows={3}
+                        required
+                      />
+                      {activeService?.customService?.trim() === "" || !activeService?.customService ? (
+                        <p className="text-xs text-destructive mt-1">This field is required</p>
+                      ) : null}
+                    </div>
                   )}
                 </div>
               )}
 
-              {/* Step 1: Details & Photos */}
+              {/* Step 1: Details & Photos + Tools */}
               {step === 1 && (
                 <div className="space-y-6">
                   <h2 className="font-display text-2xl font-bold text-foreground">Details & Photos</h2>
@@ -187,22 +274,47 @@ const BookService = () => {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-2 block">Who provides the tools?</label>
-                    <div className="flex gap-3">
-                      {(["provider", "user"] as const).map(opt => (
-                        <button
-                          key={opt}
-                          onClick={() => setToolsBy(opt)}
-                          className={`flex-1 py-3 px-4 rounded-xl border text-sm font-medium transition-colors ${
-                            toolsBy === opt ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"
-                          }`}
-                        >
-                          {opt === "provider" ? "Service Provider" : "I'll provide"}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                  {/* Tools section per service */}
+                  {services.map((svc, svcIdx) => {
+                    const cat = categories.find(c => c.id === svc.categoryId);
+                    const svcDef = cat?.services.find(s => s.name === svc.serviceName);
+                    if (!svcDef || svcDef.tools.length === 0) return null;
+                    return (
+                      <div key={svc.id} className="space-y-3">
+                        <label className="text-sm font-medium text-foreground block">
+                          Tools for: <span className="text-primary">{svc.serviceName}</span>
+                        </label>
+                        <p className="text-xs text-muted-foreground">Select tools you already have. Unselected tools will be brought by the service partner.</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {svcDef.tools.map(tool => {
+                            const isWithUser = svc.toolsWithUser.includes(tool);
+                            return (
+                              <button
+                                key={tool}
+                                onClick={() => {
+                                  setActiveServiceIdx(svcIdx);
+                                  toggleToolWithUser(tool);
+                                }}
+                                className={`flex items-center gap-2 p-2.5 rounded-lg border text-xs text-left transition-all ${
+                                  isWithUser
+                                    ? "border-accent bg-accent/10 text-accent"
+                                    : "border-border text-muted-foreground"
+                                }`}
+                              >
+                                <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
+                                  isWithUser ? "bg-accent border-accent" : "border-border"
+                                }`}>
+                                  {isWithUser && <Check className="w-3 h-3 text-accent-foreground" />}
+                                </div>
+                                <span>{tool}</span>
+                                {!isWithUser && <span className="ml-auto text-[10px] text-muted-foreground">Partner brings</span>}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
 
                   <div>
                     <label className="text-sm font-medium text-foreground mb-2 block">Additional Notes</label>
@@ -220,7 +332,6 @@ const BookService = () => {
               {step === 2 && (
                 <div className="space-y-6">
                   <h2 className="font-display text-2xl font-bold text-foreground">Choose Timing</h2>
-
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {scheduleOptions.map(opt => (
                       <button
@@ -236,13 +347,8 @@ const BookService = () => {
                       </button>
                     ))}
                   </div>
-
                   {scheduleType !== "instant" && (
-                    <Input
-                      type="datetime-local"
-                      value={scheduleDate}
-                      onChange={(e) => setScheduleDate(e.target.value)}
-                    />
+                    <Input type="datetime-local" value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)} />
                   )}
                 </div>
               )}
@@ -251,7 +357,6 @@ const BookService = () => {
               {step === 3 && (
                 <div className="space-y-6">
                   <h2 className="font-display text-2xl font-bold text-foreground">Who Is This For?</h2>
-
                   <div className="flex gap-3">
                     {(["self", "other"] as const).map(opt => (
                       <button
@@ -265,7 +370,6 @@ const BookService = () => {
                       </button>
                     ))}
                   </div>
-
                   {bookFor === "other" && (
                     <div className="space-y-3">
                       <Input placeholder="Full Name" value={otherDetails.name} onChange={e => setOtherDetails(p => ({ ...p, name: e.target.value }))} />
@@ -276,7 +380,6 @@ const BookService = () => {
                       </div>
                     </div>
                   )}
-
                   {bookFor === "self" && (
                     <div className="relative">
                       <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
@@ -290,23 +393,34 @@ const BookService = () => {
               {step === 4 && (
                 <div className="space-y-6">
                   <h2 className="font-display text-2xl font-bold text-foreground">Review & Confirm</h2>
-
                   <div className="space-y-3">
-                    {services.map((s, i) => (
-                      <div key={s.id} className="bg-muted/50 rounded-xl p-4">
-                        <div className="text-sm font-semibold text-foreground">{s.category}</div>
-                        <div className="text-sm text-muted-foreground">{s.service === "Other" ? s.customService : s.service}</div>
-                      </div>
-                    ))}
+                    {services.map((s) => {
+                      const cat = categories.find(c => c.id === s.categoryId);
+                      return (
+                        <div key={s.id} className="bg-muted/50 rounded-xl p-4">
+                          <div className="text-sm font-semibold text-foreground">{cat?.label}</div>
+                          <div className="text-sm text-muted-foreground">{isOtherService(s.serviceName) ? s.customService : s.serviceName}</div>
+                        </div>
+                      );
+                    })}
                   </div>
+
+                  {allToolsForReview.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-medium text-foreground mb-2">Tools Summary</h3>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {allToolsForReview.map((t, i) => (
+                          <div key={i} className={`text-xs px-2 py-1.5 rounded-md ${t.providedByUser ? "bg-accent/10 text-accent" : "bg-muted text-muted-foreground"}`}>
+                            {t.tool} — {t.providedByUser ? "You" : "Partner"}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex items-center justify-between text-sm border-t border-border pt-4">
                     <span className="text-muted-foreground">Schedule</span>
                     <span className="font-medium text-foreground capitalize">{scheduleType}{scheduleDate ? ` — ${new Date(scheduleDate).toLocaleDateString()}` : ""}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Tools by</span>
-                    <span className="font-medium text-foreground capitalize">{toolsBy}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Booking for</span>
@@ -329,7 +443,6 @@ const BookService = () => {
             </motion.div>
           </AnimatePresence>
 
-          {/* Navigation */}
           {step < 4 && (
             <div className="flex justify-between mt-6">
               <Button variant="ghost" onClick={() => setStep(s => s - 1)} disabled={step === 0}>
