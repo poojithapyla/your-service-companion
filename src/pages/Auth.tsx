@@ -2,8 +2,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
-import { ArrowLeft, Mail, Phone, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Mail, Phone, Eye, EyeOff, Check } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
+import { categories } from "@/data/services";
 
 const roles = [
   { id: "customer", label: "Customer", desc: "Book services for yourself or others" },
@@ -17,6 +18,13 @@ const Auth = () => {
   const [authMethod, setAuthMethod] = useState<"email" | "phone">("email");
   const [showPassword, setShowPassword] = useState(false);
   const [selectedRole, setSelectedRole] = useState(searchParams.get("role") || "customer");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+
+  const toggleCategory = (catId: string) => {
+    setSelectedCategories(prev =>
+      prev.includes(catId) ? prev.filter(c => c !== catId) : [...prev, catId]
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gradient-hero flex items-center justify-center p-4">
@@ -48,8 +56,8 @@ const Auth = () => {
           {isSignup && (
             <div className="mb-6">
               <label className="text-sm font-medium text-foreground mb-2 block">I am a</label>
-              <div className="grid grid-cols-3 gap-2">
-                {roles.map(role => (
+              <div className="grid grid-cols-2 gap-2">
+                {roles.filter(r => r.id !== "admin").map(role => (
                   <button
                     key={role.id}
                     onClick={() => setSelectedRole(role.id)}
@@ -58,6 +66,34 @@ const Auth = () => {
                     }`}
                   >
                     <div className={`text-xs font-semibold ${selectedRole === role.id ? "text-primary" : "text-foreground"}`}>{role.label}</div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">{role.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Partner category selection */}
+          {isSignup && selectedRole === "partner" && (
+            <div className="mb-6">
+              <label className="text-sm font-medium text-foreground mb-2 block">Service categories you provide</label>
+              <div className="grid grid-cols-2 gap-2">
+                {categories.map(cat => (
+                  <button
+                    key={cat.id}
+                    onClick={() => toggleCategory(cat.id)}
+                    className={`flex items-center gap-2 p-2.5 rounded-lg border text-xs text-left transition-all ${
+                      selectedCategories.includes(cat.id)
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border text-foreground"
+                    }`}
+                  >
+                    <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
+                      selectedCategories.includes(cat.id) ? "bg-primary border-primary" : "border-border"
+                    }`}>
+                      {selectedCategories.includes(cat.id) && <Check className="w-3 h-3 text-primary-foreground" />}
+                    </div>
+                    {cat.label}
                   </button>
                 ))}
               </div>
