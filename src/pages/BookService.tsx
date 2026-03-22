@@ -3,9 +3,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, ArrowRight, Check, Upload, Plus, Trash2, MapPin, Clock, Zap, Calendar, Search, CheckCircle2, AlertCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Upload, Plus, Trash2, MapPin, Clock, Zap, Calendar, Search, CheckCircle2, AlertCircle, Navigation, Loader2 } from "lucide-react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { categories, PHOTO_REQUIRED_SERVICES, type CategoryDefinition, type ServiceDefinition } from "@/data/services";
+import { getToolEmoji } from "@/data/toolIcons";
 
 const scheduleOptions = [
   { id: "instant", label: "Instant", desc: "ASAP", icon: Zap },
@@ -48,6 +49,7 @@ const BookService = () => {
   const [otherDetails, setOtherDetails] = useState({ name: "", phone: "", address: "" });
   const [notes, setNotes] = useState("");
   const [loginPrompt, setLoginPrompt] = useState(false);
+  const [locatingGPS, setLocatingGPS] = useState(false);
 
   // Load saved address
   useEffect(() => {
@@ -441,6 +443,7 @@ const BookService = () => {
                           <div className="grid grid-cols-2 gap-2">
                             {svcDef.tools.map(tool => {
                               const isWithUser = svc.toolsWithUser.includes(tool);
+                              const emoji = getToolEmoji(tool);
                               return (
                                 <button
                                   key={tool}
@@ -454,13 +457,14 @@ const BookService = () => {
                                         : "border-border text-muted-foreground"
                                   }`}
                                 >
+                                  <span className="text-base shrink-0">{emoji}</span>
                                   <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
                                     isWithUser && !svc.noneOfAboveTools ? "bg-accent border-accent" : "border-border"
                                   }`}>
                                     {isWithUser && !svc.noneOfAboveTools && <Check className="w-3 h-3 text-accent-foreground" />}
                                   </div>
-                                  <span>{tool}</span>
-                                  {!isWithUser && !svc.noneOfAboveTools && <span className="ml-auto text-[10px] text-muted-foreground">Partner brings</span>}
+                                  <span className="flex-1">{tool}</span>
+                                  {!isWithUser && !svc.noneOfAboveTools && <span className="text-[10px] text-muted-foreground">Partner brings</span>}
                                 </button>
                               );
                             })}
@@ -565,18 +569,55 @@ const BookService = () => {
                     </div>
                   )}
                   {bookFor === "self" && (
-                    <div>
+                    <div className="space-y-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!navigator.geolocation) {
+                            alert("Geolocation is not supported by your browser");
+                            return;
+                          }
+                          setLocatingGPS(true);
+                          navigator.geolocation.getCurrentPosition(
+                            async (position) => {
+                              try {
+                                const res = await fetch(
+                                  `https://nominatim.openstreetmap.org/reverse?lat=${position.coords.latitude}&lon=${position.coords.longitude}&format=json`
+                                );
+                                const data = await res.json();
+                                const addr = data.display_name || `${position.coords.latitude}, ${position.coords.longitude}`;
+                                updateSelfAddress(addr);
+                              } catch {
+                                updateSelfAddress(`${position.coords.latitude}, ${position.coords.longitude}`);
+                              }
+                              setLocatingGPS(false);
+                            },
+                            () => {
+                              alert("Unable to get your location. Please enter manually.");
+                              setLocatingGPS(false);
+                            }
+                          );
+                        }}
+                        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-primary/30 bg-primary/5 text-sm text-primary font-medium hover:bg-primary/10 transition-colors"
+                        disabled={locatingGPS}
+                      >
+                        {locatingGPS ? (
+                          <><Loader2 className="w-4 h-4 animate-spin" /> Getting location...</>
+                        ) : (
+                          <><Navigation className="w-4 h-4" /> Use Current Location</>
+                        )}
+                      </button>
                       <div className="relative">
                         <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
                         <Input
-                          placeholder="Your Address *"
+                          placeholder="Or enter your address manually *"
                           className="pl-9"
                           value={selfAddress}
                           onChange={e => updateSelfAddress(e.target.value)}
                         />
                       </div>
                       {selfAddress && (
-                        <p className="text-xs text-muted-foreground mt-1">📍 Address saved for future bookings</p>
+                        <p className="text-xs text-muted-foreground">📍 Address saved for future bookings</p>
                       )}
                     </div>
                   )}

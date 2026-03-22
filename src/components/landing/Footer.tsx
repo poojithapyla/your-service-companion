@@ -38,8 +38,9 @@ const Footer = () => (
           </ul>
         </div>
       </div>
-      <div className="border-t border-background/10 pt-6 text-center text-sm text-background/40">
-        © {new Date().getFullYear()} ServiBook. All rights reserved.
+      <div className="border-t border-background/10 pt-6 flex items-center justify-between text-sm text-background/40">
+        <span>© {new Date().getFullYear()} ServiBook. All rights reserved.</span>
+        <Link to="/admin" className="text-background/20 hover:text-background/40 transition-colors text-xs">Admin</Link>
       </div>
     </div>
   </footer>
