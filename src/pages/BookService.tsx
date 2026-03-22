@@ -49,6 +49,7 @@ const BookService = () => {
   const [otherDetails, setOtherDetails] = useState({ name: "", phone: "", address: "" });
   const [notes, setNotes] = useState("");
   const [loginPrompt, setLoginPrompt] = useState(false);
+  const [locatingGPS, setLocatingGPS] = useState(false);
 
   // Load saved address
   useEffect(() => {
