@@ -2,14 +2,13 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
-import { ArrowLeft, Mail, Phone, Eye, EyeOff, Check } from "lucide-react";
+import { ArrowLeft, Mail, Phone, Eye, EyeOff, Check, AlertCircle } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { categories } from "@/data/services";
 
 const roles = [
   { id: "customer", label: "Customer", desc: "Book services for yourself or others" },
   { id: "partner", label: "Service Partner", desc: "Offer your services and earn" },
-  { id: "admin", label: "Admin", desc: "Manage the platform" },
 ];
 
 const Auth = () => {
@@ -19,11 +18,22 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [selectedRole, setSelectedRole] = useState(searchParams.get("role") || "customer");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [showCategoryError, setShowCategoryError] = useState(false);
 
   const toggleCategory = (catId: string) => {
     setSelectedCategories(prev =>
       prev.includes(catId) ? prev.filter(c => c !== catId) : [...prev, catId]
     );
+    setShowCategoryError(false);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSignup && selectedRole === "partner" && selectedCategories.length === 0) {
+      setShowCategoryError(true);
+      return;
+    }
+    // TODO: integrate with auth backend
   };
 
   return (
@@ -57,10 +67,10 @@ const Auth = () => {
             <div className="mb-6">
               <label className="text-sm font-medium text-foreground mb-2 block">I am a</label>
               <div className="grid grid-cols-2 gap-2">
-                {roles.filter(r => r.id !== "admin").map(role => (
+                {roles.map(role => (
                   <button
                     key={role.id}
-                    onClick={() => setSelectedRole(role.id)}
+                    onClick={() => { setSelectedRole(role.id); setShowCategoryError(false); }}
                     className={`py-3 px-2 rounded-xl border text-center transition-all ${
                       selectedRole === role.id ? "border-primary bg-primary/10" : "border-border"
                     }`}
@@ -76,7 +86,9 @@ const Auth = () => {
           {/* Partner category selection */}
           {isSignup && selectedRole === "partner" && (
             <div className="mb-6">
-              <label className="text-sm font-medium text-foreground mb-2 block">Service categories you provide</label>
+              <label className="text-sm font-medium text-foreground mb-2 block">
+                Service categories you provide <span className="text-destructive">*</span>
+              </label>
               <div className="grid grid-cols-2 gap-2">
                 {categories.map(cat => (
                   <button
@@ -97,6 +109,12 @@ const Auth = () => {
                   </button>
                 ))}
               </div>
+              {showCategoryError && (
+                <div className="flex items-center gap-1 mt-2 text-xs text-destructive">
+                  <AlertCircle className="w-3 h-3" />
+                  <span>Please select at least one category</span>
+                </div>
+              )}
             </div>
           )}
 
@@ -116,7 +134,7 @@ const Auth = () => {
             ))}
           </div>
 
-          <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+          <form className="space-y-4" onSubmit={handleSubmit}>
             {isSignup && <Input placeholder="Full Name" />}
             {authMethod === "email" ? (
               <Input type="email" placeholder="Email address" />
@@ -124,10 +142,7 @@ const Auth = () => {
               <Input type="tel" placeholder="Phone number" />
             )}
             <div className="relative">
-              <Input
-                type={showPassword ? "text" : "password"}
-                placeholder="Password"
-              />
+              <Input type={showPassword ? "text" : "password"} placeholder="Password" />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
