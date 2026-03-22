@@ -1,8 +1,10 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { categories } from "@/data/services";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const ServiceCategories = () => {
+  const { t } = useLanguage();
   return (
     <section id="categories" className="py-24 bg-background">
       <div className="container mx-auto px-4">
@@ -13,10 +15,10 @@ const ServiceCategories = () => {
             viewport={{ once: true }}
             className="text-3xl sm:text-4xl font-bold text-foreground mb-4"
           >
-            Browse by <span className="text-gradient-warm">Category</span>
+            {t("categories.title1")} <span className="text-gradient-warm">{t("categories.title2")}</span>
           </motion.h2>
           <p className="text-muted-foreground max-w-md mx-auto">
-            Choose from our wide range of professional services
+            {t("categories.subtitle")}
           </p>
         </div>
 
