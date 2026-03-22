@@ -164,7 +164,7 @@ export const toolEmojis: Record<string, string> = {
   "Nail Art Brushes": "🖌️",
   "Dotting Tools": "⚬",
   "Base/Top Coat": "💅",
-  "UV Lamp": "💡",
+  // UV Lamp already defined above
   "Nail File": "💅",
   "Cuticle Pusher": "🔧",
   "Hand Cream": "🧴",
