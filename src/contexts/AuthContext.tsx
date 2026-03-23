@@ -2,12 +2,14 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
+type UserRole = "user" | "partner" | "admin" | "moderator";
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
   isAdmin: boolean;
-  userRole: string;
+  userRole: UserRole;
   profile: any;
   signOut: () => Promise<void>;
 }
@@ -29,7 +31,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [userRole, setUserRole] = useState("user");
+  const [userRole, setUserRole] = useState<UserRole>("user");
   const [profile, setProfile] = useState<any>(null);
 
   const fetchUserData = async (userId: string) => {
@@ -39,8 +41,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .eq("user_id", userId);
     if (roles && roles.length > 0) {
       const hasAdmin = roles.some((r: any) => r.role === "admin");
+      const hasPartner = roles.some((r: any) => r.role === "partner");
       setIsAdmin(hasAdmin);
-      setUserRole(hasAdmin ? "admin" : roles[0].role);
+      if (hasAdmin) setUserRole("admin");
+      else if (hasPartner) setUserRole("partner");
+      else setUserRole("user");
     }
     const { data: prof } = await supabase
       .from("profiles")
@@ -79,6 +84,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
     setSession(null);
     setIsAdmin(false);
+    setUserRole("user");
     setProfile(null);
   };
 

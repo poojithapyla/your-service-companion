@@ -1,11 +1,12 @@
 import { Button } from "@/components/ui/button";
-import { Menu, X, Globe, Sun, Moon, Flame } from "lucide-react";
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Menu, X, Globe, Sun, Moon, Flame, User, ChevronDown, LogOut, Calendar, Settings } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { languages } from "@/i18n/translations";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const themeOptions = [
   { id: "light" as const, label: "Light", icon: Sun },
@@ -17,11 +18,25 @@ const Header = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const { lang, setLang, t } = useLanguage();
   const { theme, setTheme } = useTheme();
-  const { user, signOut } = useAuth();
+  const { user, signOut, userRole, profile } = useAuth();
+  const navigate = useNavigate();
   const currentLang = languages.find(l => l.code === lang);
   const CurrentThemeIcon = themeOptions.find(to => to.id === theme)?.icon || Sun;
+
+  const initials = profile?.full_name
+    ? profile.full_name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
+    : user?.email?.[0]?.toUpperCase() || "U";
+
+  const handleSignOut = async () => {
+    await signOut();
+    setProfileOpen(false);
+    navigate("/");
+  };
+
+  const dashboardPath = userRole === "partner" ? "/partner" : userRole === "admin" ? "/admin" : "/dashboard";
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
@@ -42,7 +57,7 @@ const Header = () => {
           {/* Theme selector */}
           <div className="relative">
             <button
-              onClick={() => { setThemeOpen(!themeOpen); setLangOpen(false); }}
+              onClick={() => { setThemeOpen(!themeOpen); setLangOpen(false); setProfileOpen(false); }}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
             >
               <CurrentThemeIcon className="w-4 h-4" />
@@ -70,7 +85,7 @@ const Header = () => {
           {/* Language selector */}
           <div className="relative">
             <button
-              onClick={() => { setLangOpen(!langOpen); setThemeOpen(false); }}
+              onClick={() => { setLangOpen(!langOpen); setThemeOpen(false); setProfileOpen(false); }}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
             >
               <Globe className="w-4 h-4" />
@@ -97,14 +112,54 @@ const Header = () => {
           </div>
 
           {user ? (
-            <>
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/dashboard">Dashboard</Link>
-              </Button>
-              <Button variant="hero" size="sm" onClick={signOut}>
-                Log Out
-              </Button>
-            </>
+            <div className="relative">
+              <button
+                onClick={() => { setProfileOpen(!profileOpen); setLangOpen(false); setThemeOpen(false); }}
+                className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-muted transition-colors"
+              >
+                <Avatar className="w-8 h-8">
+                  <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">{initials}</AvatarFallback>
+                </Avatar>
+                <span className="text-sm font-medium text-foreground max-w-[100px] truncate">
+                  {profile?.full_name || user.email?.split("@")[0]}
+                </span>
+                <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+              </button>
+              {profileOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />
+                  <div className="absolute right-0 top-full mt-1 z-50 bg-card border border-border rounded-xl shadow-elevated py-1 min-w-[180px]">
+                    <div className="px-3 py-2 border-b border-border">
+                      <div className="text-sm font-medium text-foreground">{profile?.full_name || "User"}</div>
+                      <div className="text-xs text-muted-foreground capitalize">{userRole === "user" ? "Customer" : userRole}</div>
+                    </div>
+                    <Link
+                      to={dashboardPath}
+                      onClick={() => setProfileOpen(false)}
+                      className="w-full text-left px-3 py-2 text-sm flex items-center gap-2 text-foreground hover:bg-muted transition-colors"
+                    >
+                      <Calendar className="w-4 h-4" />
+                      {userRole === "partner" ? "My Jobs" : userRole === "admin" ? "Admin Panel" : "My Bookings"}
+                    </Link>
+                    {userRole === "user" && (
+                      <Link
+                        to="/book"
+                        onClick={() => setProfileOpen(false)}
+                        className="w-full text-left px-3 py-2 text-sm flex items-center gap-2 text-foreground hover:bg-muted transition-colors"
+                      >
+                        <Settings className="w-4 h-4" /> Book a Service
+                      </Link>
+                    )}
+                    <button
+                      onClick={handleSignOut}
+                      className="w-full text-left px-3 py-2 text-sm flex items-center gap-2 text-destructive hover:bg-muted transition-colors"
+                    >
+                      <LogOut className="w-4 h-4" /> Log Out
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           ) : (
             <>
               <Button variant="ghost" size="sm" asChild>
@@ -127,7 +182,6 @@ const Header = () => {
           <a href="#categories" className="block text-sm text-muted-foreground py-2" onClick={() => setMobileOpen(false)}>{t("nav.categories")}</a>
           <a href="#how-it-works" className="block text-sm text-muted-foreground py-2" onClick={() => setMobileOpen(false)}>{t("nav.howItWorks")}</a>
           
-          {/* Mobile language + theme */}
           <div className="flex flex-wrap gap-2 py-2 border-t border-border pt-3">
             {themeOptions.map(opt => (
               <button
@@ -159,9 +213,9 @@ const Header = () => {
             {user ? (
               <>
                 <Button variant="ghost" size="sm" className="flex-1" asChild>
-                  <Link to="/dashboard">Dashboard</Link>
+                  <Link to={dashboardPath}>{userRole === "partner" ? "My Jobs" : "My Bookings"}</Link>
                 </Button>
-                <Button variant="hero" size="sm" className="flex-1" onClick={signOut}>
+                <Button variant="hero" size="sm" className="flex-1" onClick={handleSignOut}>
                   Log Out
                 </Button>
               </>
