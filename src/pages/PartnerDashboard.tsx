@@ -1,31 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Calendar, CheckCircle2, XCircle, Clock, Star, DollarSign, User,
   Phone, MapPin, LogOut, ArrowLeft
 } from "lucide-react";
 import { Link } from "react-router-dom";
-
-interface Booking {
-  id: string;
-  customer: string;
-  phone: string;
-  service: string;
-  category: string;
-  date: string;
-  time: string;
-  address: string;
-  status: "pending" | "accepted" | "in_progress" | "completed" | "rejected";
-  amount: string;
-  notes?: string;
-}
-
-const mockBookings: Booking[] = [
-  { id: "BK-2001", customer: "Rahul S.", phone: "+91 98765 43210", service: "Deep Cleaning", category: "Home Services", date: "2026-03-23", time: "10:00 AM", address: "Flat 302, Sunrise Apts, MG Road", status: "pending", amount: "₹999", notes: "3BHK apartment" },
-  { id: "BK-2002", customer: "Priya M.", phone: "+91 87654 32109", service: "AC Service - Regular", category: "Technical Services", date: "2026-03-24", time: "2:00 PM", address: "House 12, Green Valley, Whitefield", status: "accepted", amount: "₹1,499" },
-  { id: "BK-2003", customer: "Sneha R.", phone: "+91 76543 21098", service: "Birthday Décor - Premium", category: "Decoration Services", date: "2026-03-25", time: "4:00 PM", address: "Villa 8, Palm Meadows", status: "in_progress", amount: "₹2,999", notes: "Theme: Unicorn" },
-  { id: "BK-2004", customer: "Amit K.", phone: "+91 65432 10987", service: "Sofa Cleaning", category: "Home Services", date: "2026-03-22", time: "11:00 AM", address: "Apt 501, Lake View, HSR Layout", status: "completed", amount: "₹799" },
-];
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
   pending: { label: "Pending", color: "text-yellow-600 bg-yellow-500/10", icon: Clock },
@@ -36,16 +18,62 @@ const statusConfig: Record<string, { label: string; color: string; icon: any }> 
 };
 
 const PartnerDashboard = () => {
-  const [bookings, setBookings] = useState(mockBookings);
+  const { user, profile, signOut } = useAuth();
+  const [bookings, setBookings] = useState<any[]>([]);
   const [filter, setFilter] = useState<string>("all");
+  const [loading, setLoading] = useState(true);
 
-  const handleAction = (id: string, action: "accepted" | "rejected" | "in_progress" | "completed") => {
-    setBookings(prev => prev.map(b => b.id === id ? { ...b, status: action } : b));
+  useEffect(() => {
+    fetchBookings();
+  }, [user]);
+
+  const fetchBookings = async () => {
+    if (!user) return;
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("bookings")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) {
+      toast.error("Failed to load bookings");
+    } else {
+      setBookings(data || []);
+    }
+    setLoading(false);
+  };
+
+  const handleAction = async (id: string, action: string) => {
+    const updates: any = { status: action };
+    if (action === "accepted") {
+      updates.assigned_partner_id = user?.id;
+    }
+    const { error } = await supabase.from("bookings").update(updates).eq("id", id);
+    if (error) {
+      toast.error("Failed to update booking");
+    } else {
+      toast.success(`Booking ${action}`);
+      fetchBookings();
+    }
   };
 
   const filtered = filter === "all" ? bookings : bookings.filter(b => b.status === filter);
+  const earnings = bookings
+    .filter(b => b.status === "completed" && b.assigned_partner_id === user?.id)
+    .reduce((sum, b) => sum + (b.estimated_cost || 0), 0);
 
-  const earnings = bookings.filter(b => b.status === "completed").reduce((sum, b) => sum + parseInt(b.amount.replace(/[₹,]/g, "")), 0);
+  const getServiceNames = (services: any) => {
+    if (Array.isArray(services)) {
+      return services.flatMap((s: any) => s.serviceNames || []).join(", ");
+    }
+    return "Service";
+  };
+
+  const getCategoryNames = (services: any) => {
+    if (Array.isArray(services)) {
+      return [...new Set(services.map((s: any) => s.categoryId || ""))].join(", ");
+    }
+    return "";
+  };
 
   return (
     <div className="min-h-screen bg-gradient-hero">
@@ -55,13 +83,28 @@ const PartnerDashboard = () => {
             <Link to="/" className="text-muted-foreground hover:text-foreground"><ArrowLeft className="w-5 h-5" /></Link>
             <span className="font-display text-lg font-bold text-foreground">Partner Dashboard</span>
           </div>
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/"><LogOut className="w-4 h-4 mr-1" /> Logout</Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">{profile?.full_name}</span>
+            <Button variant="ghost" size="sm" onClick={signOut}>
+              <LogOut className="w-4 h-4 mr-1" /> Logout
+            </Button>
+          </div>
         </div>
       </div>
 
       <div className="container mx-auto px-4 py-6 space-y-6">
+        {/* My Categories */}
+        {profile?.partner_categories?.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            <span className="text-xs text-muted-foreground self-center">My categories:</span>
+            {profile.partner_categories.map((cat: string) => (
+              <span key={cat} className="text-xs px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 capitalize">
+                {cat.replace(/-/g, " ")}
+              </span>
+            ))}
+          </div>
+        )}
+
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="bg-card rounded-xl border border-border p-4 text-center">
@@ -102,69 +145,75 @@ const PartnerDashboard = () => {
         </div>
 
         {/* Bookings */}
-        <div className="space-y-4">
-          {filtered.map(booking => {
-            const sc = statusConfig[booking.status];
-            return (
-              <div key={booking.id} className="bg-card rounded-xl border border-border p-5 space-y-3">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="text-xs text-muted-foreground">{booking.id}</div>
-                    <div className="text-base font-semibold text-foreground">{booking.service}</div>
-                    <div className="text-xs text-muted-foreground">{booking.category}</div>
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto" />
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filtered.map(booking => {
+              const sc = statusConfig[booking.status] || statusConfig.pending;
+              return (
+                <div key={booking.id} className="bg-card rounded-xl border border-border p-5 space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="text-xs text-muted-foreground">{booking.id.slice(0, 8)}</div>
+                      <div className="text-base font-semibold text-foreground">{getServiceNames(booking.services)}</div>
+                      <div className="text-xs text-muted-foreground">{getCategoryNames(booking.services)}</div>
+                    </div>
+                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${sc.color}`}>{sc.label}</span>
                   </div>
-                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${sc.color}`}>{sc.label}</span>
-                </div>
 
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="flex items-center gap-1.5 text-muted-foreground">
-                    <Calendar className="w-3.5 h-3.5" /> {booking.date} at {booking.time}
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <Calendar className="w-3.5 h-3.5" /> {booking.schedule_date ? new Date(booking.schedule_date).toLocaleDateString() : "ASAP"}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <DollarSign className="w-3.5 h-3.5" /> ₹{booking.estimated_cost || 0}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5 text-muted-foreground">
-                    <DollarSign className="w-3.5 h-3.5" /> {booking.amount}
-                  </div>
-                </div>
 
-                {/* Show customer details only for accepted/in_progress/completed */}
-                {["accepted", "in_progress", "completed"].includes(booking.status) && (
-                  <div className="bg-muted/50 rounded-lg p-3 space-y-1.5 text-xs">
-                    <div className="flex items-center gap-1.5"><User className="w-3.5 h-3.5 text-muted-foreground" /> {booking.customer}</div>
-                    <div className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-muted-foreground" /> {booking.phone}</div>
-                    <div className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-muted-foreground" /> {booking.address}</div>
-                    {booking.notes && <div className="text-muted-foreground italic">Note: {booking.notes}</div>}
-                  </div>
-                )}
+                  {["accepted", "in_progress", "completed"].includes(booking.status) && booking.address && (
+                    <div className="bg-muted/50 rounded-lg p-3 space-y-1.5 text-xs">
+                      <div className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-muted-foreground" /> {booking.address}</div>
+                      {booking.recipient_name && <div className="flex items-center gap-1.5"><User className="w-3.5 h-3.5 text-muted-foreground" /> {booking.recipient_name}</div>}
+                      {booking.recipient_phone && <div className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-muted-foreground" /> {booking.recipient_phone}</div>}
+                      {booking.notes && <div className="text-muted-foreground italic">Note: {booking.notes}</div>}
+                    </div>
+                  )}
 
-                {/* Actions */}
-                <div className="flex gap-2">
-                  {booking.status === "pending" && (
-                    <>
-                      <Button size="sm" variant="hero" className="flex-1" onClick={() => handleAction(booking.id, "accepted")}>
-                        <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Accept
+                  <div className="flex gap-2">
+                    {booking.status === "pending" && (
+                      <>
+                        <Button size="sm" variant="hero" className="flex-1" onClick={() => handleAction(booking.id, "accepted")}>
+                          <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Accept
+                        </Button>
+                        <Button size="sm" variant="outline" className="flex-1 text-destructive border-destructive/30" onClick={() => handleAction(booking.id, "rejected")}>
+                          <XCircle className="w-3.5 h-3.5 mr-1" /> Reject
+                        </Button>
+                      </>
+                    )}
+                    {booking.status === "accepted" && booking.assigned_partner_id === user?.id && (
+                      <Button size="sm" variant="hero" className="flex-1" onClick={() => handleAction(booking.id, "in_progress")}>
+                        Start Service
                       </Button>
-                      <Button size="sm" variant="outline" className="flex-1 text-destructive border-destructive/30" onClick={() => handleAction(booking.id, "rejected")}>
-                        <XCircle className="w-3.5 h-3.5 mr-1" /> Reject
+                    )}
+                    {booking.status === "in_progress" && booking.assigned_partner_id === user?.id && (
+                      <Button size="sm" variant="hero" className="flex-1" onClick={() => handleAction(booking.id, "completed")}>
+                        Mark Completed
                       </Button>
-                    </>
-                  )}
-                  {booking.status === "accepted" && (
-                    <Button size="sm" variant="hero" className="flex-1" onClick={() => handleAction(booking.id, "in_progress")}>
-                      Start Service
-                    </Button>
-                  )}
-                  {booking.status === "in_progress" && (
-                    <Button size="sm" variant="hero" className="flex-1" onClick={() => handleAction(booking.id, "completed")}>
-                      Mark Completed
-                    </Button>
-                  )}
+                    )}
+                  </div>
                 </div>
+              );
+            })}
+            {filtered.length === 0 && (
+              <div className="text-center py-12 text-muted-foreground text-sm">
+                {loading ? "Loading..." : "No bookings found for your categories"}
               </div>
-            );
-          })}
-          {filtered.length === 0 && (
-            <div className="text-center py-12 text-muted-foreground text-sm">No bookings found</div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
