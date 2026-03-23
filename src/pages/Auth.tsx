@@ -18,7 +18,7 @@ const roles = [
 const Auth = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
   const [isSignup, setIsSignup] = useState(searchParams.get("mode") === "signup");
   const [authMethod, setAuthMethod] = useState<"email" | "phone">("email");
   const [showPassword, setShowPassword] = useState(false);
@@ -34,9 +34,17 @@ const Auth = () => {
   useEffect(() => {
     if (user) {
       const redirect = searchParams.get("redirect");
-      navigate(redirect ? `/${redirect}` : "/dashboard");
+      if (redirect) {
+        navigate(`/${redirect}`);
+      } else if (userRole === "partner") {
+        navigate("/partner");
+      } else if (userRole === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/dashboard");
+      }
     }
-  }, [user, navigate, searchParams]);
+  }, [user, userRole, navigate, searchParams]);
 
   const toggleCategory = (catId: string) => {
     setSelectedCategories(prev =>
@@ -54,9 +62,10 @@ const Auth = () => {
     setIsLoading(true);
     try {
       if (isSignup) {
+        const role = selectedRole === "partner" ? "partner" : "user";
         const credentials = authMethod === "email"
-          ? { email, password, options: { data: { full_name: fullName, role: selectedRole, partner_categories: selectedCategories } } }
-          : { phone, password, options: { data: { full_name: fullName, role: selectedRole, partner_categories: selectedCategories } } };
+          ? { email, password, options: { data: { full_name: fullName, role, partner_categories: selectedCategories } } }
+          : { phone, password, options: { data: { full_name: fullName, role, partner_categories: selectedCategories } } };
         const { error } = await supabase.auth.signUp(credentials);
         if (error) throw error;
         toast.success("Account created! Please check your email to verify.");
@@ -67,7 +76,7 @@ const Auth = () => {
         const { error } = await supabase.auth.signInWithPassword(credentials);
         if (error) throw error;
         toast.success("Logged in successfully!");
-        navigate("/dashboard");
+        // Redirect handled by useEffect
       }
     } catch (err: any) {
       toast.error(err.message || "Authentication failed");
@@ -116,7 +125,7 @@ const Auth = () => {
           {/* Role Selection (signup only) */}
           {isSignup && (
             <div className="mb-6">
-              <label className="text-sm font-medium text-foreground mb-2 block">I am a</label>
+              <label className="text-sm font-medium text-foreground mb-2 block">I want to</label>
               <div className="grid grid-cols-2 gap-2">
                 {roles.map(role => (
                   <button
