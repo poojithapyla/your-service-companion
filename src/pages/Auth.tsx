@@ -202,7 +202,7 @@ const Auth = () => {
               <Input type="tel" placeholder="Phone number" value={phone} onChange={e => setPhone(e.target.value)} required />
             )}
             <div className="relative">
-              <Input type={showPassword ? "text" : "password"} placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} />
+              <Input type={showPassword ? "text" : "password"} placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required minLength={8} />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
@@ -211,6 +211,22 @@ const Auth = () => {
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
+            {isSignup && password.length > 0 && (
+              <div className="space-y-1 text-xs">
+                <div className={password.length >= 8 ? "text-accent" : "text-destructive"}>
+                  {password.length >= 8 ? "✓" : "✗"} At least 8 characters
+                </div>
+                <div className={/[A-Z]/.test(password) ? "text-accent" : "text-destructive"}>
+                  {/[A-Z]/.test(password) ? "✓" : "✗"} One uppercase letter
+                </div>
+                <div className={/[0-9]/.test(password) ? "text-accent" : "text-destructive"}>
+                  {/[0-9]/.test(password) ? "✓" : "✗"} One number
+                </div>
+                <div className={/[^A-Za-z0-9]/.test(password) ? "text-accent" : "text-destructive"}>
+                  {/[^A-Za-z0-9]/.test(password) ? "✓" : "✗"} One special character
+                </div>
+              </div>
+            )}
 
             <Button variant="hero" className="w-full py-5" type="submit" disabled={isLoading}>
               {isLoading ? "Please wait..." : isSignup ? "Create Account" : "Log In"}
