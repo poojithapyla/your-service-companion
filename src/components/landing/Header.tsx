@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Menu, X, Globe, Sun, Moon, Flame, User, ChevronDown, LogOut, Calendar, Settings } from "lucide-react";
+import { Menu, X, Globe, Sun, Moon, Flame, User, ChevronDown, LogOut, Calendar, Settings, Plus } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
