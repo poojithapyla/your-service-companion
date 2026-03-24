@@ -24,8 +24,38 @@ const PartnerDashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchBookings();
-  }, [user]);
+    if (user) {
+      fetchBookings();
+      // Real-time subscription for new bookings
+      const channel = supabase
+        .channel('partner-bookings')
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'bookings',
+        }, (payload) => {
+          // Check if booking matches partner categories
+          const newBooking = payload.new as any;
+          const partnerCats = profile?.partner_categories || [];
+          const bookingServices = Array.isArray(newBooking.services) ? newBooking.services : [];
+          const matches = bookingServices.some((s: any) => partnerCats.includes(s.categoryId));
+          if (matches) {
+            setBookings(prev => [newBooking, ...prev]);
+            toast.info("New booking available in your category!");
+          }
+        })
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'bookings',
+        }, (payload) => {
+          setBookings(prev => prev.map(b => b.id === (payload.new as any).id ? payload.new as any : b));
+        })
+        .subscribe();
+
+      return () => { supabase.removeChannel(channel); };
+    }
+  }, [user, profile]);
 
   const fetchBookings = async () => {
     if (!user) return;
@@ -70,7 +100,7 @@ const PartnerDashboard = () => {
 
   const getCategoryNames = (services: any) => {
     if (Array.isArray(services)) {
-      return [...new Set(services.map((s: any) => s.categoryId || ""))].join(", ");
+      return [...new Set(services.map((s: any) => s.categoryLabel || s.categoryId || ""))].join(", ");
     }
     return "";
   };
@@ -93,7 +123,6 @@ const PartnerDashboard = () => {
       </div>
 
       <div className="container mx-auto px-4 py-6 space-y-6">
-        {/* My Categories */}
         {profile?.partner_categories?.length > 0 && (
           <div className="flex flex-wrap gap-2">
             <span className="text-xs text-muted-foreground self-center">My categories:</span>
@@ -105,7 +134,6 @@ const PartnerDashboard = () => {
           </div>
         )}
 
-        {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="bg-card rounded-xl border border-border p-4 text-center">
             <Calendar className="w-5 h-5 text-primary mx-auto mb-1" />
@@ -129,7 +157,6 @@ const PartnerDashboard = () => {
           </div>
         </div>
 
-        {/* Filter */}
         <div className="flex gap-2 overflow-x-auto pb-1">
           {["all", "pending", "accepted", "in_progress", "completed"].map(f => (
             <button
@@ -144,7 +171,6 @@ const PartnerDashboard = () => {
           ))}
         </div>
 
-        {/* Bookings */}
         {loading ? (
           <div className="text-center py-12">
             <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto" />
@@ -209,7 +235,7 @@ const PartnerDashboard = () => {
             })}
             {filtered.length === 0 && (
               <div className="text-center py-12 text-muted-foreground text-sm">
-                {loading ? "Loading..." : "No bookings found for your categories"}
+                No bookings found for your categories
               </div>
             )}
           </div>

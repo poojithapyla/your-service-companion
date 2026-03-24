@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Calendar, Clock, CheckCircle2, Star, Phone, MapPin, XCircle,
-  ArrowLeft, LogOut, Plus
+  Calendar, Clock, CheckCircle2, Star, MapPin, XCircle,
+  ArrowLeft, LogOut, Plus, Bell
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -27,7 +27,35 @@ const CustomerDashboard = () => {
   const [feedback, setFeedback] = useState("");
 
   useEffect(() => {
-    fetchBookings();
+    if (user) {
+      fetchBookings();
+      // Real-time subscription
+      const channel = supabase
+        .channel('customer-bookings')
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'bookings',
+          filter: `user_id=eq.${user.id}`,
+        }, (payload) => {
+          if (payload.eventType === 'UPDATE') {
+            const updated = payload.new as any;
+            setBookings(prev => prev.map(b => b.id === updated.id ? updated : b));
+            if (updated.status === 'accepted') {
+              toast.success("Your booking has been accepted by a partner!");
+            } else if (updated.status === 'in_progress') {
+              toast.info("Your service is now in progress!");
+            } else if (updated.status === 'completed') {
+              toast.success("Your service has been completed!");
+            }
+          } else if (payload.eventType === 'INSERT') {
+            setBookings(prev => [payload.new as any, ...prev]);
+          }
+        })
+        .subscribe();
+
+      return () => { supabase.removeChannel(channel); };
+    }
   }, [user]);
 
   const fetchBookings = async () => {
@@ -108,7 +136,6 @@ const CustomerDashboard = () => {
                   {booking.address && <div className="flex items-center gap-1.5 col-span-2"><MapPin className="w-3.5 h-3.5" /> {booking.address}</div>}
                 </div>
 
-                {/* Rating */}
                 {booking.status === "completed" && !booking.rating && ratingBookingId !== booking.id && (
                   <Button size="sm" variant="outline" onClick={() => setRatingBookingId(booking.id)} className="w-full">
                     <Star className="w-3.5 h-3.5 mr-1" /> Rate this service

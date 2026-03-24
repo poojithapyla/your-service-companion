@@ -5,8 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, ArrowRight, Check, Upload, Plus, Trash2, MapPin, Clock, Zap, Calendar, Search, CheckCircle2, AlertCircle, Navigation, Loader2 } from "lucide-react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
-import { categories, PHOTO_REQUIRED_SERVICES, type CategoryDefinition, type ServiceDefinition } from "@/data/services";
+import { categories, PHOTO_REQUIRED_SERVICES, QUANTITY_SERVICES, type CategoryDefinition, type ServiceDefinition } from "@/data/services";
 import { getToolEmoji } from "@/data/toolIcons";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const scheduleOptions = [
   { id: "instant", label: "Instant", desc: "ASAP", icon: Zap },
@@ -23,21 +26,22 @@ interface ServiceItem {
   customService?: string;
   toolsWithUser: string[];
   noneOfAboveTools: boolean;
+  quantities: Record<string, number>;
 }
 
 const STEPS = ["Category", "Services", "Details & Photos", "Schedule", "For Whom", "Review"];
-
 const SAVED_ADDRESS_KEY = "servibook_saved_address";
 
 const BookService = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const initialCat = searchParams.get("category") || "";
   const matchedCat = categories.find(c => c.label === initialCat);
 
   const [step, setStep] = useState(matchedCat ? 1 : 0);
   const [services, setServices] = useState<ServiceItem[]>([
-    { id: 1, categoryId: matchedCat?.id || "", serviceNames: [], toolsWithUser: [], noneOfAboveTools: false },
+    { id: 1, categoryId: matchedCat?.id || "", serviceNames: [], toolsWithUser: [], noneOfAboveTools: false, quantities: {} },
   ]);
   const [activeServiceIdx, setActiveServiceIdx] = useState(0);
   const [serviceSearch, setServiceSearch] = useState("");
@@ -48,16 +52,14 @@ const BookService = () => {
   const [selfAddress, setSelfAddress] = useState("");
   const [otherDetails, setOtherDetails] = useState({ name: "", phone: "", address: "" });
   const [notes, setNotes] = useState("");
-  const [loginPrompt, setLoginPrompt] = useState(false);
   const [locatingGPS, setLocatingGPS] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  // Load saved address
   useEffect(() => {
     const saved = localStorage.getItem(SAVED_ADDRESS_KEY);
     if (saved) setSelfAddress(saved);
   }, []);
 
-  // Save address when changed
   const updateSelfAddress = (addr: string) => {
     setSelfAddress(addr);
     if (addr.trim()) localStorage.setItem(SAVED_ADDRESS_KEY, addr);
@@ -82,6 +84,7 @@ const BookService = () => {
     updateService("customService", "");
     updateService("toolsWithUser", []);
     updateService("noneOfAboveTools", false);
+    updateService("quantities", {});
     setServiceSearch("");
     setStep(1);
   };
@@ -113,8 +116,15 @@ const BookService = () => {
     }));
   };
 
+  const updateQuantity = (svcIdx: number, serviceName: string, qty: number) => {
+    setServices(prev => prev.map((s, i) => {
+      if (i !== svcIdx) return s;
+      return { ...s, quantities: { ...s.quantities, [serviceName]: qty } };
+    }));
+  };
+
   const addServiceGroup = () => {
-    setServices(prev => [...prev, { id: Date.now(), categoryId: "", serviceNames: [], toolsWithUser: [], noneOfAboveTools: false }]);
+    setServices(prev => [...prev, { id: Date.now(), categoryId: "", serviceNames: [], toolsWithUser: [], noneOfAboveTools: false, quantities: {} }]);
     setActiveServiceIdx(services.length);
     setStep(0);
   };
@@ -138,6 +148,21 @@ const BookService = () => {
 
   const photoRequiredServices = selectedServiceDefs.filter(s => s.photoRequired);
   const needsMandatoryPhotos = photoRequiredServices.length > 0;
+  const notesMandatoryServices = selectedServiceDefs.filter(s => s.notesMandatory);
+  const needsMandatoryNotes = notesMandatoryServices.length > 0;
+
+  // Quantity services that are selected
+  const selectedQuantityServices = useMemo(() => {
+    return services.flatMap(s => {
+      const cat = categories.find(c => c.id === s.categoryId);
+      if (!cat) return [];
+      return s.serviceNames.flatMap(name => {
+        const svcDef = cat.services.find(sv => sv.name === name);
+        if (!svcDef?.quantityField) return [];
+        return [{ serviceName: name, question: svcDef.quantityField, svcIdx: services.indexOf(s) }];
+      });
+    });
+  }, [services]);
 
   const notesPlaceholders = useMemo(() => {
     return selectedServiceDefs
@@ -145,7 +170,6 @@ const BookService = () => {
       .map(s => s.notesPlaceholder!);
   }, [selectedServiceDefs]);
 
-  // Check if all services with tools have either selected some tools or "none of above"
   const allToolsHandled = useMemo(() => {
     return services.every(s => {
       const cat = categories.find(c => c.id === s.categoryId);
@@ -170,6 +194,12 @@ const BookService = () => {
     if (step === 2) {
       if (needsMandatoryPhotos && photos.length === 0) return false;
       if (!allToolsHandled) return false;
+      if (needsMandatoryNotes && !notes.trim()) return false;
+      // Check all quantity fields are filled
+      for (const qs of selectedQuantityServices) {
+        const svc = services[qs.svcIdx];
+        if (!svc.quantities[qs.serviceName] || svc.quantities[qs.serviceName] < 1) return false;
+      }
       return true;
     }
     if (step === 3 && scheduleType !== "instant") return !!scheduleDate;
@@ -204,55 +234,69 @@ const BookService = () => {
     });
   });
 
-  const handleConfirmBooking = () => {
-    // Prompt login (mock - in production, check auth state)
-    setLoginPrompt(true);
-  };
+  const handleConfirmBooking = async () => {
+    if (!user) {
+      // Not logged in — redirect to auth then back
+      navigate("/auth?redirect=book");
+      return;
+    }
 
-  const proceedToPayment = () => {
-    navigate("/payment", {
-      state: {
-        estimatedCost,
+    setSubmitting(true);
+    try {
+      const bookingData = {
+        user_id: user.id,
         services: services.map(s => ({
-          category: categories.find(c => c.id === s.categoryId)?.label,
-          services: s.serviceNames,
+          categoryId: s.categoryId,
+          categoryLabel: categories.find(c => c.id === s.categoryId)?.label,
+          serviceNames: s.serviceNames,
           customService: s.customService,
+          quantities: s.quantities,
         })),
-        scheduleType,
-        scheduleDate,
-        bookFor,
+        tools_summary: allToolsForReview,
+        schedule_type: scheduleType,
+        schedule_date: scheduleType !== "instant" && scheduleDate ? scheduleDate : null,
+        book_for: bookFor,
         address: bookFor === "self" ? selfAddress : otherDetails.address,
-      },
-    });
+        recipient_name: bookFor === "other" ? otherDetails.name : null,
+        recipient_phone: bookFor === "other" ? otherDetails.phone : null,
+        notes: notes || null,
+        photos: photos,
+        estimated_cost: estimatedCost,
+        status: "pending",
+        payment_status: "pending",
+      };
+
+      const { error } = await supabase.from("bookings").insert(bookingData);
+      if (error) throw error;
+
+      // Save address to profile
+      if (bookFor === "self" && selfAddress.trim()) {
+        await supabase.from("profiles").update({ saved_address: selfAddress }).eq("id", user.id);
+      }
+
+      navigate("/payment", {
+        state: {
+          estimatedCost,
+          services: services.map(s => ({
+            category: categories.find(c => c.id === s.categoryId)?.label,
+            services: s.serviceNames,
+            customService: s.customService,
+          })),
+          scheduleType,
+          scheduleDate,
+          bookFor,
+          address: bookFor === "self" ? selfAddress : otherDetails.address,
+        },
+      });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to create booking");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gradient-hero">
-      {/* Login prompt modal */}
-      {loginPrompt && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="bg-card rounded-2xl border border-border p-8 max-w-sm w-full shadow-elevated text-center"
-          >
-            <h3 className="font-display text-xl font-bold text-foreground mb-2">Login Required</h3>
-            <p className="text-sm text-muted-foreground mb-6">Please log in or sign up to complete your booking.</p>
-            <div className="space-y-3">
-              <Button variant="hero" className="w-full" asChild>
-                <Link to="/auth?redirect=payment">Log In / Sign Up</Link>
-              </Button>
-              <Button variant="ghost" className="w-full" onClick={() => {
-                setLoginPrompt(false);
-                proceedToPayment();
-              }}>
-                Continue as Guest
-              </Button>
-            </div>
-          </motion.div>
-        </div>
-      )}
-
       <div className="bg-background/80 backdrop-blur-lg border-b border-border/50">
         <div className="container mx-auto flex items-center h-16 px-4 gap-4">
           <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors">
@@ -403,7 +447,7 @@ const BookService = () => {
                 </div>
               )}
 
-              {/* Step 2: Details & Photos + Tools */}
+              {/* Step 2: Details & Photos + Tools + Quantities */}
               {step === 2 && (
                 <div className="space-y-6">
                   <h2 className="font-display text-2xl font-bold text-foreground">Details & Photos</h2>
@@ -426,6 +470,26 @@ const BookService = () => {
                       <p className="text-sm text-muted-foreground">Click or drag to upload photos</p>
                     </div>
                   </div>
+
+                  {/* Quantity fields */}
+                  {selectedQuantityServices.length > 0 && (
+                    <div className="space-y-3">
+                      <label className="text-sm font-medium text-foreground block">Quantity Details <span className="text-destructive">*</span></label>
+                      {selectedQuantityServices.map(qs => (
+                        <div key={qs.serviceName} className="flex items-center gap-3 p-3 rounded-lg border border-border">
+                          <span className="text-sm text-foreground flex-1">{qs.question}</span>
+                          <Input
+                            type="number"
+                            min={1}
+                            className="w-20"
+                            placeholder="0"
+                            value={services[qs.svcIdx]?.quantities[qs.serviceName] || ""}
+                            onChange={e => updateQuantity(qs.svcIdx, qs.serviceName, parseInt(e.target.value) || 0)}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Tools section per service */}
                   {services.map((svc, svcIdx) => {
@@ -469,7 +533,6 @@ const BookService = () => {
                               );
                             })}
                           </div>
-                          {/* None of the above */}
                           <button
                             onClick={() => toggleNoneOfAbove(svcIdx)}
                             className={`w-full flex items-center gap-2 p-2.5 rounded-lg border text-xs text-left transition-all ${
@@ -495,12 +558,22 @@ const BookService = () => {
 
                   {/* Additional notes */}
                   <div>
-                    <label className="text-sm font-medium text-foreground mb-2 block">Additional Notes</label>
+                    <label className="text-sm font-medium text-foreground mb-2 block">
+                      Additional Notes {needsMandatoryNotes && <span className="text-destructive">* Required</span>}
+                    </label>
                     {notesPlaceholders.length > 0 && (
                       <div className="space-y-1 mb-2">
                         {notesPlaceholders.map((ph, i) => (
                           <p key={i} className="text-xs text-muted-foreground italic">💡 {ph}</p>
                         ))}
+                      </div>
+                    )}
+                    {needsMandatoryNotes && (
+                      <div className="flex items-start gap-2 mb-2 p-2 rounded-lg bg-destructive/5 border border-destructive/20">
+                        <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+                        <p className="text-xs text-destructive">
+                          Additional details required for: {notesMandatoryServices.map(s => s.name).join(", ")}
+                        </p>
                       </div>
                     )}
                     <Textarea
@@ -509,6 +582,9 @@ const BookService = () => {
                       onChange={(e) => setNotes(e.target.value)}
                       rows={3}
                     />
+                    {needsMandatoryNotes && !notes.trim() && (
+                      <p className="text-xs text-destructive mt-1">This field is required</p>
+                    )}
                   </div>
                 </div>
               )}
@@ -573,52 +649,30 @@ const BookService = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          if (!navigator.geolocation) {
-                            alert("Geolocation is not supported by your browser");
-                            return;
-                          }
+                          if (!navigator.geolocation) { alert("Geolocation not supported"); return; }
                           setLocatingGPS(true);
                           navigator.geolocation.getCurrentPosition(
                             async (position) => {
                               try {
-                                const res = await fetch(
-                                  `https://nominatim.openstreetmap.org/reverse?lat=${position.coords.latitude}&lon=${position.coords.longitude}&format=json`
-                                );
+                                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${position.coords.latitude}&lon=${position.coords.longitude}&format=json`);
                                 const data = await res.json();
-                                const addr = data.display_name || `${position.coords.latitude}, ${position.coords.longitude}`;
-                                updateSelfAddress(addr);
-                              } catch {
-                                updateSelfAddress(`${position.coords.latitude}, ${position.coords.longitude}`);
-                              }
+                                updateSelfAddress(data.display_name || `${position.coords.latitude}, ${position.coords.longitude}`);
+                              } catch { updateSelfAddress(`${position.coords.latitude}, ${position.coords.longitude}`); }
                               setLocatingGPS(false);
                             },
-                            () => {
-                              alert("Unable to get your location. Please enter manually.");
-                              setLocatingGPS(false);
-                            }
+                            () => { alert("Unable to get location."); setLocatingGPS(false); }
                           );
                         }}
                         className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-primary/30 bg-primary/5 text-sm text-primary font-medium hover:bg-primary/10 transition-colors"
                         disabled={locatingGPS}
                       >
-                        {locatingGPS ? (
-                          <><Loader2 className="w-4 h-4 animate-spin" /> Getting location...</>
-                        ) : (
-                          <><Navigation className="w-4 h-4" /> Use Current Location</>
-                        )}
+                        {locatingGPS ? <><Loader2 className="w-4 h-4 animate-spin" /> Getting location...</> : <><Navigation className="w-4 h-4" /> Use Current Location</>}
                       </button>
                       <div className="relative">
                         <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          placeholder="Or enter your address manually *"
-                          className="pl-9"
-                          value={selfAddress}
-                          onChange={e => updateSelfAddress(e.target.value)}
-                        />
+                        <Input placeholder="Or enter your address manually *" className="pl-9" value={selfAddress} onChange={e => updateSelfAddress(e.target.value)} />
                       </div>
-                      {selfAddress && (
-                        <p className="text-xs text-muted-foreground">📍 Address saved for future bookings</p>
-                      )}
+                      {selfAddress && <p className="text-xs text-muted-foreground">📍 Address saved for future bookings</p>}
                     </div>
                   )}
                 </div>
@@ -637,6 +691,11 @@ const BookService = () => {
                           <div className="text-sm text-muted-foreground mt-1">
                             {s.serviceNames.map(n => isOtherService(n) ? s.customService : n).join(", ")}
                           </div>
+                          {Object.entries(s.quantities).filter(([_, v]) => v > 0).map(([name, qty]) => (
+                            <div key={name} className="text-xs text-muted-foreground mt-1">
+                              {name}: <span className="font-medium text-foreground">{qty}</span>
+                            </div>
+                          ))}
                         </div>
                       );
                     })}
@@ -667,6 +726,12 @@ const BookService = () => {
                     <span className="text-muted-foreground">Address</span>
                     <span className="font-medium text-foreground">{bookFor === "self" ? selfAddress : otherDetails.address}</span>
                   </div>
+                  {notes && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Notes</span>
+                      <span className="font-medium text-foreground">{notes}</span>
+                    </div>
+                  )}
 
                   <div className="bg-primary/5 rounded-xl p-5 border border-primary/20">
                     <div className="flex items-center justify-between">
@@ -676,8 +741,8 @@ const BookService = () => {
                     <p className="text-xs text-muted-foreground mt-1">Final cost may vary. Pay via COD, Card, UPI, or Online.</p>
                   </div>
 
-                  <Button variant="hero" size="lg" className="w-full py-6 text-base" onClick={handleConfirmBooking}>
-                    Proceed to Payment
+                  <Button variant="hero" size="lg" className="w-full py-6 text-base" onClick={handleConfirmBooking} disabled={submitting}>
+                    {submitting ? "Creating Booking..." : "Proceed to Payment"}
                   </Button>
                 </div>
               )}
