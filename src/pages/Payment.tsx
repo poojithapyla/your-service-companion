@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, CreditCard, Smartphone, Banknote, Globe, Check, ShieldCheck } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const paymentMethods = [
   { id: "upi", label: "UPI", desc: "Google Pay, PhonePe, Paytm", icon: Smartphone },
@@ -15,6 +16,7 @@ const paymentMethods = [
 const Payment = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const bookingData = location.state || {};
   const estimatedCost = bookingData.estimatedCost || 0;
 
@@ -86,13 +88,11 @@ const Payment = () => {
           animate={{ opacity: 1, y: 0 }}
           className="bg-card rounded-2xl border border-border p-6 sm:p-8 shadow-soft space-y-6"
         >
-          {/* Amount */}
           <div className="bg-primary/5 rounded-xl p-5 border border-primary/20 text-center">
             <p className="text-sm text-muted-foreground mb-1">Amount to Pay</p>
             <p className="text-3xl font-bold text-gradient-warm">₹{estimatedCost}</p>
           </div>
 
-          {/* Payment methods */}
           <div>
             <h3 className="text-sm font-medium text-foreground mb-3">Select Payment Method <span className="text-destructive">*</span></h3>
             <div className="space-y-2">
@@ -119,7 +119,6 @@ const Payment = () => {
             </div>
           </div>
 
-          {/* UPI details */}
           {method === "upi" && (
             <div className="space-y-3">
               <label className="text-sm font-medium text-foreground block">UPI ID <span className="text-destructive">*</span></label>
@@ -127,7 +126,6 @@ const Payment = () => {
             </div>
           )}
 
-          {/* Card details */}
           {method === "card" && (
             <div className="space-y-3">
               <div>
@@ -147,17 +145,14 @@ const Payment = () => {
             </div>
           )}
 
-          {/* Net banking info */}
           {method === "online" && (
             <p className="text-sm text-muted-foreground text-center py-2">You will be redirected to your bank's website to complete payment.</p>
           )}
 
-          {/* COD info */}
           {method === "cod" && (
             <p className="text-sm text-muted-foreground text-center py-2">Pay ₹{estimatedCost} in cash when the service is completed.</p>
           )}
 
-          {/* Security badge */}
           <div className="flex items-center gap-2 text-xs text-muted-foreground justify-center">
             <ShieldCheck className="w-4 h-4" />
             <span>Secure & encrypted payment</span>

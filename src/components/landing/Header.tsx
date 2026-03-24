@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Menu, X, Globe, Sun, Moon, Flame, User, ChevronDown, LogOut, Calendar, Settings } from "lucide-react";
+import { Menu, X, Globe, Sun, Moon, Flame, User, ChevronDown, LogOut, Calendar, Settings, Plus } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -141,13 +141,20 @@ const Header = () => {
                       <Calendar className="w-4 h-4" />
                       {userRole === "partner" ? "My Jobs" : userRole === "admin" ? "Admin Panel" : "My Bookings"}
                     </Link>
+                    <Link
+                      to="/profile"
+                      onClick={() => setProfileOpen(false)}
+                      className="w-full text-left px-3 py-2 text-sm flex items-center gap-2 text-foreground hover:bg-muted transition-colors"
+                    >
+                      <Settings className="w-4 h-4" /> Profile Settings
+                    </Link>
                     {userRole === "user" && (
                       <Link
                         to="/book"
                         onClick={() => setProfileOpen(false)}
                         className="w-full text-left px-3 py-2 text-sm flex items-center gap-2 text-foreground hover:bg-muted transition-colors"
                       >
-                        <Settings className="w-4 h-4" /> Book a Service
+                        <Plus className="w-4 h-4" /> Book a Service
                       </Link>
                     )}
                     <button

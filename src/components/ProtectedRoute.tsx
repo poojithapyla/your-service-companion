@@ -7,6 +7,8 @@ interface ProtectedRouteProps {
   requireRole?: "user" | "partner";
 }
 
+// Allow any authenticated user when no requireRole/requireAdmin specified
+
 const ProtectedRoute = ({ children, requireAdmin, requireRole }: ProtectedRouteProps) => {
   const { user, loading, isAdmin, userRole } = useAuth();
 
