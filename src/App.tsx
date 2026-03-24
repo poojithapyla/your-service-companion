@@ -15,6 +15,7 @@ import AdminDashboard from "./pages/AdminDashboard.tsx";
 import PartnerDashboard from "./pages/PartnerDashboard.tsx";
 import CustomerDashboard from "./pages/CustomerDashboard.tsx";
 import Payment from "./pages/Payment.tsx";
+import ProfileSettings from "./pages/ProfileSettings.tsx";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +36,7 @@ const App = () => (
                 <Route path="/partner" element={<ProtectedRoute requireRole="partner"><PartnerDashboard /></ProtectedRoute>} />
                 <Route path="/dashboard" element={<ProtectedRoute requireRole="user"><CustomerDashboard /></ProtectedRoute>} />
                 <Route path="/payment" element={<ProtectedRoute requireRole="user"><Payment /></ProtectedRoute>} />
+                <Route path="/profile" element={<ProtectedRoute><ProfileSettings /></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
