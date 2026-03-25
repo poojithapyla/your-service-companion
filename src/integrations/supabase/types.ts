@@ -18,6 +18,8 @@ export type Database = {
         Row: {
           address: string | null
           assigned_partner_id: string | null
+          assigned_partner_name: string | null
+          assigned_partner_phone: string | null
           book_for: string
           created_at: string
           estimated_cost: number | null
@@ -41,6 +43,8 @@ export type Database = {
         Insert: {
           address?: string | null
           assigned_partner_id?: string | null
+          assigned_partner_name?: string | null
+          assigned_partner_phone?: string | null
           book_for?: string
           created_at?: string
           estimated_cost?: number | null
@@ -64,6 +68,8 @@ export type Database = {
         Update: {
           address?: string | null
           assigned_partner_id?: string | null
+          assigned_partner_name?: string | null
+          assigned_partner_phone?: string | null
           book_for?: string
           created_at?: string
           estimated_cost?: number | null
@@ -157,6 +163,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      partner_can_view_customer_booking_partner_profile: {
+        Args: { _profile_id: string }
         Returns: boolean
       }
     }
