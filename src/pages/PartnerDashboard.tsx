@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  Calendar, CheckCircle2, XCircle, Clock, Star, DollarSign, User,
-  Phone, MapPin, LogOut, ArrowLeft
+  Calendar, CheckCircle2, XCircle, Clock, Star, MapPin, User,
+  Phone, LogOut, ArrowLeft, IndianRupee
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,33 +26,23 @@ const PartnerDashboard = () => {
   useEffect(() => {
     if (user) {
       fetchBookings();
-      // Real-time subscription for new bookings
       const channel = supabase
         .channel('partner-bookings')
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'bookings',
-        }, (payload) => {
-          // Check if booking matches partner categories
-          const newBooking = payload.new as any;
-          const partnerCats = profile?.partner_categories || [];
-          const bookingServices = Array.isArray(newBooking.services) ? newBooking.services : [];
-          const matches = bookingServices.some((s: any) => partnerCats.includes(s.categoryId));
-          if (matches) {
-            setBookings(prev => [newBooking, ...prev]);
-            toast.info("New booking available in your category!");
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newBooking = payload.new as any;
+            const partnerCats = profile?.partner_categories || [];
+            const bookingServices = Array.isArray(newBooking.services) ? newBooking.services : [];
+            const matches = bookingServices.some((s: any) => partnerCats.includes(s.categoryId));
+            if (matches) {
+              setBookings(prev => [newBooking, ...prev]);
+              toast.info("New booking available in your category!");
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            setBookings(prev => prev.map(b => b.id === (payload.new as any).id ? payload.new as any : b));
           }
         })
-        .on('postgres_changes', {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'bookings',
-        }, (payload) => {
-          setBookings(prev => prev.map(b => b.id === (payload.new as any).id ? payload.new as any : b));
-        })
         .subscribe();
-
       return () => { supabase.removeChannel(channel); };
     }
   }, [user, profile]);
@@ -64,18 +54,23 @@ const PartnerDashboard = () => {
       .from("bookings")
       .select("*")
       .order("created_at", { ascending: false });
-    if (error) {
-      toast.error("Failed to load bookings");
-    } else {
-      setBookings(data || []);
-    }
+    if (error) toast.error("Failed to load bookings");
+    else setBookings(data || []);
     setLoading(false);
   };
 
   const handleAction = async (id: string, action: string) => {
     const updates: any = { status: action };
-    if (action === "accepted") {
-      updates.assigned_partner_id = user?.id;
+    if (action === "accepted" && user) {
+      updates.assigned_partner_id = user.id;
+      updates.assigned_partner_name = profile?.full_name || "Partner";
+      updates.assigned_partner_phone = profile?.phone || "";
+    }
+    if (action === "rejected") {
+      // Clear partner assignment on reject
+      updates.assigned_partner_id = null;
+      updates.assigned_partner_name = null;
+      updates.assigned_partner_phone = null;
     }
     const { error } = await supabase.from("bookings").update(updates).eq("id", id);
     if (error) {
@@ -87,21 +82,18 @@ const PartnerDashboard = () => {
   };
 
   const filtered = filter === "all" ? bookings : bookings.filter(b => b.status === filter);
+  const myAccepted = bookings.filter(b => b.assigned_partner_id === user?.id && ["accepted", "in_progress", "completed"].includes(b.status));
   const earnings = bookings
     .filter(b => b.status === "completed" && b.assigned_partner_id === user?.id)
     .reduce((sum, b) => sum + (b.estimated_cost || 0), 0);
 
   const getServiceNames = (services: any) => {
-    if (Array.isArray(services)) {
-      return services.flatMap((s: any) => s.serviceNames || []).join(", ");
-    }
+    if (Array.isArray(services)) return services.flatMap((s: any) => s.serviceNames || []).join(", ");
     return "Service";
   };
 
   const getCategoryNames = (services: any) => {
-    if (Array.isArray(services)) {
-      return [...new Set(services.map((s: any) => s.categoryLabel || s.categoryId || ""))].join(", ");
-    }
+    if (Array.isArray(services)) return [...new Set(services.map((s: any) => s.categoryLabel || s.categoryId || ""))].join(", ");
     return "";
   };
 
@@ -138,20 +130,20 @@ const PartnerDashboard = () => {
           <div className="bg-card rounded-xl border border-border p-4 text-center">
             <Calendar className="w-5 h-5 text-primary mx-auto mb-1" />
             <div className="text-2xl font-bold text-foreground">{bookings.filter(b => b.status === "pending").length}</div>
-            <div className="text-xs text-muted-foreground">Pending</div>
+            <div className="text-xs text-muted-foreground">Available</div>
           </div>
           <div className="bg-card rounded-xl border border-border p-4 text-center">
-            <Clock className="w-5 h-5 text-blue-600 mx-auto mb-1" />
-            <div className="text-2xl font-bold text-foreground">{bookings.filter(b => b.status === "in_progress").length}</div>
-            <div className="text-xs text-muted-foreground">In Progress</div>
+            <CheckCircle2 className="w-5 h-5 text-blue-600 mx-auto mb-1" />
+            <div className="text-2xl font-bold text-foreground">{myAccepted.length}</div>
+            <div className="text-xs text-muted-foreground">My Jobs</div>
           </div>
           <div className="bg-card rounded-xl border border-border p-4 text-center">
-            <CheckCircle2 className="w-5 h-5 text-accent mx-auto mb-1" />
-            <div className="text-2xl font-bold text-foreground">{bookings.filter(b => b.status === "completed").length}</div>
+            <Clock className="w-5 h-5 text-accent mx-auto mb-1" />
+            <div className="text-2xl font-bold text-foreground">{bookings.filter(b => b.status === "completed" && b.assigned_partner_id === user?.id).length}</div>
             <div className="text-xs text-muted-foreground">Completed</div>
           </div>
           <div className="bg-card rounded-xl border border-border p-4 text-center">
-            <DollarSign className="w-5 h-5 text-secondary mx-auto mb-1" />
+            <IndianRupee className="w-5 h-5 text-secondary mx-auto mb-1" />
             <div className="text-2xl font-bold text-foreground">₹{earnings.toLocaleString()}</div>
             <div className="text-xs text-muted-foreground">Earnings</div>
           </div>
@@ -179,6 +171,7 @@ const PartnerDashboard = () => {
           <div className="space-y-4">
             {filtered.map(booking => {
               const sc = statusConfig[booking.status] || statusConfig.pending;
+              const isMyJob = booking.assigned_partner_id === user?.id;
               return (
                 <div key={booking.id} className="bg-card rounded-xl border border-border p-5 space-y-3">
                   <div className="flex items-start justify-between">
@@ -195,11 +188,12 @@ const PartnerDashboard = () => {
                       <Calendar className="w-3.5 h-3.5" /> {booking.schedule_date ? new Date(booking.schedule_date).toLocaleDateString() : "ASAP"}
                     </div>
                     <div className="flex items-center gap-1.5 text-muted-foreground">
-                      <DollarSign className="w-3.5 h-3.5" /> ₹{booking.estimated_cost || 0}
+                      <IndianRupee className="w-3.5 h-3.5" /> ₹{booking.estimated_cost || 0}
                     </div>
                   </div>
 
-                  {["accepted", "in_progress", "completed"].includes(booking.status) && booking.address && (
+                  {/* Show details once accepted */}
+                  {isMyJob && ["accepted", "in_progress", "completed"].includes(booking.status) && booking.address && (
                     <div className="bg-muted/50 rounded-lg p-3 space-y-1.5 text-xs">
                       <div className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-muted-foreground" /> {booking.address}</div>
                       {booking.recipient_name && <div className="flex items-center gap-1.5"><User className="w-3.5 h-3.5 text-muted-foreground" /> {booking.recipient_name}</div>}
@@ -208,8 +202,9 @@ const PartnerDashboard = () => {
                     </div>
                   )}
 
+                  {/* Actions based on status */}
                   <div className="flex gap-2">
-                    {booking.status === "pending" && (
+                    {booking.status === "pending" && !booking.assigned_partner_id && (
                       <>
                         <Button size="sm" variant="hero" className="flex-1" onClick={() => handleAction(booking.id, "accepted")}>
                           <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Accept
@@ -219,15 +214,18 @@ const PartnerDashboard = () => {
                         </Button>
                       </>
                     )}
-                    {booking.status === "accepted" && booking.assigned_partner_id === user?.id && (
+                    {booking.status === "accepted" && isMyJob && (
                       <Button size="sm" variant="hero" className="flex-1" onClick={() => handleAction(booking.id, "in_progress")}>
                         Start Service
                       </Button>
                     )}
-                    {booking.status === "in_progress" && booking.assigned_partner_id === user?.id && (
+                    {booking.status === "in_progress" && isMyJob && (
                       <Button size="sm" variant="hero" className="flex-1" onClick={() => handleAction(booking.id, "completed")}>
                         Mark Completed
                       </Button>
+                    )}
+                    {booking.status === "accepted" && !isMyJob && (
+                      <span className="text-xs text-muted-foreground italic">Accepted by another partner</span>
                     )}
                   </div>
                 </div>
@@ -235,7 +233,7 @@ const PartnerDashboard = () => {
             })}
             {filtered.length === 0 && (
               <div className="text-center py-12 text-muted-foreground text-sm">
-                No bookings found for your categories
+                No bookings found
               </div>
             )}
           </div>

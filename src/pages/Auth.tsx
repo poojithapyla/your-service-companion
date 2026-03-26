@@ -27,6 +27,7 @@ const Auth = () => {
   const [showCategoryError, setShowCategoryError] = useState(false);
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [partnerPhone, setPartnerPhone] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -46,6 +47,22 @@ const Auth = () => {
     }
   }, [user, userRole, navigate, searchParams]);
 
+  // Listen for email verification — auto-refresh
+  useEffect(() => {
+    const handleHashChange = () => {
+      if (window.location.hash.includes("access_token")) {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session) {
+            toast.success("Email verified! You're now logged in.");
+          }
+        });
+      }
+    };
+    handleHashChange();
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
+
   const toggleCategory = (catId: string) => {
     setSelectedCategories(prev =>
       prev.includes(catId) ? prev.filter(c => c !== catId) : [...prev, catId]
@@ -53,19 +70,37 @@ const Auth = () => {
     setShowCategoryError(false);
   };
 
+  const passwordValid = password.length >= 8 && /[A-Z]/.test(password) && /[0-9]/.test(password) && /[^A-Za-z0-9]/.test(password);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSignup && !passwordValid) {
+      toast.error("Password does not meet requirements");
+      return;
+    }
     if (isSignup && selectedRole === "partner" && selectedCategories.length === 0) {
       setShowCategoryError(true);
+      return;
+    }
+    if (isSignup && selectedRole === "partner" && !partnerPhone.trim()) {
+      toast.error("Phone number is required for service partners");
       return;
     }
     setIsLoading(true);
     try {
       if (isSignup) {
         const role = selectedRole === "partner" ? "partner" : "user";
+        const metadata: any = {
+          full_name: fullName,
+          role,
+          partner_categories: selectedCategories,
+        };
+        if (selectedRole === "partner") {
+          metadata.phone = partnerPhone;
+        }
         const credentials = authMethod === "email"
-          ? { email, password, options: { data: { full_name: fullName, role, partner_categories: selectedCategories } } }
-          : { phone, password, options: { data: { full_name: fullName, role, partner_categories: selectedCategories } } };
+          ? { email, password, options: { data: metadata, emailRedirectTo: window.location.origin + "/auth" } }
+          : { phone, password, options: { data: metadata } };
         const { error } = await supabase.auth.signUp(credentials);
         if (error) throw error;
         toast.success("Account created! Please check your email to verify.");
@@ -76,7 +111,6 @@ const Auth = () => {
         const { error } = await supabase.auth.signInWithPassword(credentials);
         if (error) throw error;
         toast.success("Logged in successfully!");
-        // Redirect handled by useEffect
       }
     } catch (err: any) {
       toast.error(err.message || "Authentication failed");
@@ -201,6 +235,19 @@ const Auth = () => {
             ) : (
               <Input type="tel" placeholder="Phone number" value={phone} onChange={e => setPhone(e.target.value)} required />
             )}
+            {/* Partner phone number (required) */}
+            {isSignup && selectedRole === "partner" && (
+              <div>
+                <Input
+                  type="tel"
+                  placeholder="Your contact phone number *"
+                  value={partnerPhone}
+                  onChange={e => setPartnerPhone(e.target.value)}
+                  required
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">Customers will see this after you accept a booking</p>
+              </div>
+            )}
             <div className="relative">
               <Input type={showPassword ? "text" : "password"} placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required minLength={8} />
               <button
@@ -232,6 +279,15 @@ const Auth = () => {
               {isLoading ? "Please wait..." : isSignup ? "Create Account" : "Log In"}
             </Button>
           </form>
+
+          {/* Forgot Password */}
+          {!isSignup && (
+            <div className="mt-3 text-center">
+              <Link to="/reset-password" className="text-sm text-primary hover:underline">
+                Forgot password?
+              </Link>
+            </div>
+          )}
 
           {/* Social Login */}
           <div className="mt-6">
