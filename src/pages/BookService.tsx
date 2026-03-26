@@ -501,7 +501,7 @@ const BookService = () => {
                           </div>
                         ))}
                       </div>
-                    )
+                    )}
                   </div>
 
                   {/* Quantity fields */}
