@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Calendar, Clock, CheckCircle2, Star, MapPin, XCircle,
-  ArrowLeft, LogOut, Plus, Bell
+  ArrowLeft, LogOut, Plus, Phone, User, IndianRupee
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -29,7 +29,6 @@ const CustomerDashboard = () => {
   useEffect(() => {
     if (user) {
       fetchBookings();
-      // Real-time subscription
       const channel = supabase
         .channel('customer-bookings')
         .on('postgres_changes', {
@@ -41,19 +40,14 @@ const CustomerDashboard = () => {
           if (payload.eventType === 'UPDATE') {
             const updated = payload.new as any;
             setBookings(prev => prev.map(b => b.id === updated.id ? updated : b));
-            if (updated.status === 'accepted') {
-              toast.success("Your booking has been accepted by a partner!");
-            } else if (updated.status === 'in_progress') {
-              toast.info("Your service is now in progress!");
-            } else if (updated.status === 'completed') {
-              toast.success("Your service has been completed!");
-            }
+            if (updated.status === 'accepted') toast.success("Your booking has been accepted by a partner!");
+            else if (updated.status === 'in_progress') toast.info("Your service is now in progress!");
+            else if (updated.status === 'completed') toast.success("Your service has been completed!");
           } else if (payload.eventType === 'INSERT') {
             setBookings(prev => [payload.new as any, ...prev]);
           }
         })
         .subscribe();
-
       return () => { supabase.removeChannel(channel); };
     }
   }, [user]);
@@ -136,6 +130,22 @@ const CustomerDashboard = () => {
                   {booking.address && <div className="flex items-center gap-1.5 col-span-2"><MapPin className="w-3.5 h-3.5" /> {booking.address}</div>}
                 </div>
 
+                {/* Show partner details once accepted */}
+                {["accepted", "in_progress", "completed"].includes(booking.status) && booking.assigned_partner_name && (
+                  <div className="bg-accent/5 rounded-lg p-3 border border-accent/20 space-y-1.5">
+                    <p className="text-xs font-medium text-accent">Partner Assigned</p>
+                    <div className="flex items-center gap-1.5 text-xs text-foreground">
+                      <User className="w-3.5 h-3.5 text-muted-foreground" /> {booking.assigned_partner_name}
+                    </div>
+                    {booking.assigned_partner_phone && (
+                      <div className="flex items-center gap-1.5 text-xs text-foreground">
+                        <Phone className="w-3.5 h-3.5 text-muted-foreground" />
+                        <a href={`tel:${booking.assigned_partner_phone}`} className="text-primary hover:underline">{booking.assigned_partner_phone}</a>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {booking.status === "completed" && !booking.rating && ratingBookingId !== booking.id && (
                   <Button size="sm" variant="outline" onClick={() => setRatingBookingId(booking.id)} className="w-full">
                     <Star className="w-3.5 h-3.5 mr-1" /> Rate this service
@@ -170,7 +180,7 @@ const CustomerDashboard = () => {
                       <XCircle className="w-3.5 h-3.5 mr-1" /> Cancel
                     </Button>
                   )}
-                  <div className="text-lg font-bold text-foreground ml-auto">₹{booking.estimated_cost || 0}</div>
+                  <div className="text-lg font-bold text-foreground ml-auto">₹{(booking.estimated_cost || 0).toLocaleString()}</div>
                 </div>
               </div>
             );

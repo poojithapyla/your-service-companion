@@ -7,6 +7,7 @@ import { ArrowLeft, ArrowRight, Check, Upload, Plus, Trash2, MapPin, Clock, Zap,
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { categories, PHOTO_REQUIRED_SERVICES, QUANTITY_SERVICES, type CategoryDefinition, type ServiceDefinition } from "@/data/services";
 import { getToolEmoji } from "@/data/toolIcons";
+import { calculateBookingEstimate } from "@/lib/pricing";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -211,7 +212,7 @@ const BookService = () => {
     return true;
   };
 
-  const estimatedCost = services.reduce((sum, s) => sum + s.serviceNames.length * 499, 0);
+  const estimatedCost = calculateBookingEstimate(services.map(s => ({ serviceNames: s.serviceNames, quantities: s.quantities })));
 
   const allToolsForReview = services.flatMap(s => {
     const cat = categories.find(c => c.id === s.categoryId);
@@ -465,10 +466,42 @@ const BookService = () => {
                         </p>
                       </div>
                     )}
-                    <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary/50 transition-colors cursor-pointer">
+                    <label htmlFor="photo-upload" className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary/50 transition-colors cursor-pointer block">
                       <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                      <p className="text-sm text-muted-foreground">Click or drag to upload photos</p>
-                    </div>
+                      <p className="text-sm text-muted-foreground">Click to upload photos</p>
+                      <input
+                        id="photo-upload"
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        onChange={async (e) => {
+                          const files = e.target.files;
+                          if (!files || !user) return;
+                          for (const file of Array.from(files)) {
+                            const path = `${user.id}/${Date.now()}-${file.name}`;
+                            const { error } = await supabase.storage.from("booking-photos").upload(path, file);
+                            if (error) { toast.error("Upload failed: " + error.message); continue; }
+                            const { data: urlData } = supabase.storage.from("booking-photos").getPublicUrl(path);
+                            setPhotos(prev => [...prev, urlData.publicUrl]);
+                          }
+                          toast.success("Photos uploaded!");
+                        }}
+                      />
+                    </label>
+                    {photos.length > 0 && (
+                      <div className="flex gap-2 flex-wrap mt-2">
+                        {photos.map((url, i) => (
+                          <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border">
+                            <img src={url} alt="" className="w-full h-full object-cover" />
+                            <button
+                              onClick={() => setPhotos(prev => prev.filter((_, idx) => idx !== i))}
+                              className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center text-xs"
+                            >×</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Quantity fields */}

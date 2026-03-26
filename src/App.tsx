@@ -11,6 +11,7 @@ import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import BookService from "./pages/BookService.tsx";
 import Auth from "./pages/Auth.tsx";
+import ResetPassword from "./pages/ResetPassword.tsx";
 import AdminDashboard from "./pages/AdminDashboard.tsx";
 import PartnerDashboard from "./pages/PartnerDashboard.tsx";
 import CustomerDashboard from "./pages/CustomerDashboard.tsx";
@@ -32,6 +33,7 @@ const App = () => (
                 <Route path="/" element={<Index />} />
                 <Route path="/book" element={<ProtectedRoute requireRole="user"><BookService /></ProtectedRoute>} />
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>} />
                 <Route path="/partner" element={<ProtectedRoute requireRole="partner"><PartnerDashboard /></ProtectedRoute>} />
                 <Route path="/dashboard" element={<ProtectedRoute requireRole="user"><CustomerDashboard /></ProtectedRoute>} />
