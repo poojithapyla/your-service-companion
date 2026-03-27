@@ -192,13 +192,31 @@ const PartnerDashboard = () => {
                     </div>
                   </div>
 
-                  {/* Show details once accepted */}
-                  {isMyJob && ["accepted", "in_progress", "completed"].includes(booking.status) && booking.address && (
-                    <div className="bg-muted/50 rounded-lg p-3 space-y-1.5 text-xs">
-                      <div className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-muted-foreground" /> {booking.address}</div>
+                  {/* Show full customer details once accepted */}
+                  {isMyJob && ["accepted", "in_progress", "completed"].includes(booking.status) && (
+                    <div className="bg-accent/5 rounded-lg p-3 space-y-1.5 text-xs border border-accent/20">
+                      <p className="font-medium text-accent text-[11px] uppercase tracking-wider">Customer Details</p>
+                      {booking.address && <div className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-muted-foreground" /> {booking.address}</div>}
                       {booking.recipient_name && <div className="flex items-center gap-1.5"><User className="w-3.5 h-3.5 text-muted-foreground" /> {booking.recipient_name}</div>}
-                      {booking.recipient_phone && <div className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-muted-foreground" /> {booking.recipient_phone}</div>}
+                      {booking.recipient_phone && (
+                        <div className="flex items-center gap-1.5">
+                          <Phone className="w-3.5 h-3.5 text-muted-foreground" />
+                          <a href={`tel:${booking.recipient_phone}`} className="text-primary hover:underline">{booking.recipient_phone}</a>
+                        </div>
+                      )}
+                      {booking.book_for === "self" && !booking.recipient_name && (
+                        <div className="flex items-center gap-1.5"><User className="w-3.5 h-3.5 text-muted-foreground" /> Customer (self-booking)</div>
+                      )}
                       {booking.notes && <div className="text-muted-foreground italic">Note: {booking.notes}</div>}
+                      {booking.photos && booking.photos.length > 0 && (
+                        <div className="flex gap-1.5 flex-wrap mt-1">
+                          {booking.photos.map((url: string, i: number) => (
+                            <a key={i} href={url} target="_blank" rel="noreferrer">
+                              <img src={url} alt="" className="w-14 h-14 rounded-md object-cover border border-border" />
+                            </a>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
 

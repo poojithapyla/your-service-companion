@@ -60,10 +60,10 @@ const HeroSection = () => {
                 </Link>
               </Button>
             )}
-            {/* Show "Become a Partner" only if NOT a customer */}
-            {(!user || userRole !== "user") && (
+            {/* Show "Become a Partner" only if NOT logged in as customer or partner */}
+            {!user && (
               <Button variant="hero-outline" size="lg" className="text-base px-8 py-6" asChild>
-                <Link to={user ? "/partner" : "/auth?mode=signup&role=partner"}>
+                <Link to="/auth?mode=signup&role=partner">
                   {t("hero.partner")}
                 </Link>
               </Button>
@@ -84,18 +84,13 @@ const HeroSection = () => {
             transition={{ duration: 0.6, delay: 0.5 }}
             className="mt-12 flex items-center justify-center gap-6 text-sm text-muted-foreground"
           >
-            <div className="flex items-center gap-1">
-              <div className="flex -space-x-2">
-                {[1, 2, 3, 4].map(i => (
-                  <div key={i} className="w-8 h-8 rounded-full bg-gradient-warm border-2 border-background" />
-                ))}
-              </div>
-              <span className="ml-2">4.9★ Rating</span>
-            </div>
+            <span>✨ Home Services</span>
             <div className="h-4 w-px bg-border" />
-            <span>50+ {t("services")}</span>
+            <span>🔧 Repairs & Installations</span>
             <div className="h-4 w-px bg-border" />
-            <span>500+ {t("partners")}</span>
+            <span>💇 Beauty & Grooming</span>
+            <div className="h-4 w-px bg-border" />
+            <span>🎉 Décor</span>
           </motion.div>
         </div>
       </div>
