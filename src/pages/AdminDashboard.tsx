@@ -152,10 +152,11 @@ const AdminDashboard = () => {
   const completedCount = bookings.filter(b => b.status === "completed").length;
   const completionRate = bookings.length > 0 ? Math.round((completedCount / bookings.length) * 100) : 0;
 
-  // Sort bookings
+  // Sort & filter bookings
   const sortedBookings = useMemo(() => {
     const q = searchQuery.toLowerCase();
     let filtered = bookings.filter(b => {
+      if (statusFilter !== "all" && b.status !== statusFilter) return false;
       if (!q) return true;
       return getServiceNames(b.services).toLowerCase().includes(q)
         || getProfileName(b.user_id).toLowerCase().includes(q)
@@ -172,7 +173,7 @@ const AdminDashboard = () => {
       return 0;
     });
     return filtered;
-  }, [bookings, searchQuery, sortField, sortAsc, profiles]);
+  }, [bookings, searchQuery, sortField, sortAsc, statusFilter, profiles]);
 
   const toggleSort = (field: typeof sortField) => {
     if (sortField === field) setSortAsc(!sortAsc);
