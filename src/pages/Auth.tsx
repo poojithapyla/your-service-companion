@@ -25,6 +25,7 @@ const Auth = () => {
   const [selectedRole, setSelectedRole] = useState(searchParams.get("role") || "customer");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [showCategoryError, setShowCategoryError] = useState(false);
+  const [partnerAddress, setPartnerAddress] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [partnerPhone, setPartnerPhone] = useState("");
@@ -96,6 +97,9 @@ const Auth = () => {
           partner_categories: selectedCategories,
         };
         if (selectedRole === "partner") {
+          metadata.phone = partnerPhone;
+          metadata.address = partnerAddress;
+        }
           metadata.phone = partnerPhone;
         }
         const credentials = authMethod === "email"
@@ -246,6 +250,15 @@ const Auth = () => {
                   required
                 />
                 <p className="text-[10px] text-muted-foreground mt-1">Customers will see this after you accept a booking</p>
+              </div>
+              <div>
+                <Input
+                  placeholder="Your address / location *"
+                  value={partnerAddress}
+                  onChange={e => setPartnerAddress(e.target.value)}
+                  required
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">Used to match nearby bookings</p>
               </div>
             )}
             <div className="relative">
