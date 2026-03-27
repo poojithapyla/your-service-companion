@@ -168,6 +168,17 @@ const AdminDashboard = () => {
             </button>
           ))}
         </nav>
+        <div className="space-y-1 border-t border-border pt-3 mt-3">
+          <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-muted-foreground" asChild>
+            <Link to="/book"><Plus className="w-4 h-4" /> Book a Service</Link>
+          </Button>
+          <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-muted-foreground" asChild>
+            <Link to="/auth?mode=signup&role=partner"><UserCheck className="w-4 h-4" /> Become a Partner</Link>
+          </Button>
+          <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-muted-foreground" asChild>
+            <Link to="/dashboard"><Calendar className="w-4 h-4" /> Customer Dashboard</Link>
+          </Button>
+        </div>
         <Button variant="ghost" size="sm" className="justify-start gap-2 text-muted-foreground" asChild>
           <Link to="/"><LogOut className="w-4 h-4" /> Back to Site</Link>
         </Button>
@@ -304,55 +315,7 @@ const AdminDashboard = () => {
 
           {/* USERS */}
           {activeNav === "users" && (
-            <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="bg-card rounded-xl border border-border p-5">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Users className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm font-medium text-foreground">Total Users</span>
-                  </div>
-                  <div className="text-3xl font-bold text-foreground">{profiles.length}</div>
-                </div>
-                <div className="bg-card rounded-xl border border-border p-5">
-                  <div className="flex items-center gap-2 mb-2">
-                    <UserCheck className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm font-medium text-foreground">Partners</span>
-                  </div>
-                  <div className="text-3xl font-bold text-foreground">
-                    {profiles.filter(p => p.partner_categories && p.partner_categories.length > 0).length}
-                  </div>
-                </div>
-              </div>
-              <div className="bg-card rounded-xl border border-border">
-                <div className="px-5 py-4 border-b border-border">
-                  <h2 className="font-display text-lg font-semibold text-foreground">All Users</h2>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-border">
-                        {["Name", "Phone", "Categories", "Address", "Joined"].map(h => (
-                          <th key={h} className="text-left text-xs font-medium text-muted-foreground px-5 py-3">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {profiles.map(p => (
-                        <tr key={p.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                          <td className="px-5 py-3 text-sm font-medium text-foreground">{p.full_name || "—"}</td>
-                          <td className="px-5 py-3 text-sm text-muted-foreground">{p.phone || "—"}</td>
-                          <td className="px-5 py-3 text-sm text-muted-foreground">
-                            {p.partner_categories?.length > 0 ? p.partner_categories.join(", ") : "Customer"}
-                          </td>
-                          <td className="px-5 py-3 text-sm text-muted-foreground max-w-[150px] truncate">{p.saved_address || "—"}</td>
-                          <td className="px-5 py-3 text-sm text-muted-foreground">{new Date(p.created_at).toLocaleDateString()}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </>
+            <UsersPartnersSection profiles={profiles} searchQuery={searchQuery} />
           )}
 
           {/* FEEDBACK */}

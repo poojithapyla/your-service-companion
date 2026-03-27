@@ -60,7 +60,7 @@ const HeroSection = () => {
                 </Link>
               </Button>
             )}
-            {/* Show "Become a Partner" only if NOT logged in as customer or partner */}
+            {/* Show "Become a Partner" only if NOT logged in */}
             {!user && (
               <Button variant="hero-outline" size="lg" className="text-base px-8 py-6" asChild>
                 <Link to="/auth?mode=signup&role=partner">
@@ -70,7 +70,7 @@ const HeroSection = () => {
             )}
             {/* Logged-in user: go to dashboard */}
             {user && (
-              <Button variant="hero" size="lg" className="text-base px-8 py-6" asChild>
+              <Button variant="hero-outline" size="lg" className="text-base px-8 py-6" asChild>
                 <Link to={userRole === "partner" ? "/partner" : userRole === "admin" ? "/admin" : "/dashboard"}>
                   Go to Dashboard <ArrowRight className="ml-1 w-5 h-5" />
                 </Link>

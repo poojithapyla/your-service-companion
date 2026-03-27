@@ -55,6 +55,7 @@ const BookService = () => {
   const [notes, setNotes] = useState("");
   const [locatingGPS, setLocatingGPS] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [noPartnerWarning, setNoPartnerWarning] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem(SAVED_ADDRESS_KEY);
@@ -250,9 +251,28 @@ const BookService = () => {
     });
   });
 
+  // Check partner availability when reaching review step
+  useEffect(() => {
+    if (step === 5) {
+      const checkPartners = async () => {
+        const categoryIds = [...new Set(services.map(s => s.categoryId))];
+        const { data: partners } = await supabase
+          .from("profiles")
+          .select("partner_categories")
+          .not("partner_categories", "eq", "{}");
+        if (partners) {
+          const hasMatch = partners.some(p =>
+            categoryIds.some(cid => p.partner_categories?.includes(cid))
+          );
+          setNoPartnerWarning(!hasMatch);
+        }
+      };
+      checkPartners();
+    }
+  }, [step, services]);
+
   const handleConfirmBooking = async () => {
     if (!user) {
-      // Not logged in — redirect to auth then back
       navigate("/auth?redirect=book");
       return;
     }
@@ -729,7 +749,12 @@ const BookService = () => {
               {/* Step 5: Review */}
               {step === 5 && (
                 <div className="space-y-6">
-                  <h2 className="font-display text-2xl font-bold text-foreground">Review & Confirm</h2>
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => setStep(4)} className="text-muted-foreground hover:text-foreground transition-colors">
+                      <ArrowLeft className="w-5 h-5" />
+                    </button>
+                    <h2 className="font-display text-2xl font-bold text-foreground">Review & Confirm</h2>
+                  </div>
                   <div className="space-y-3">
                     {services.map((s) => {
                       const cat = categories.find(c => c.id === s.categoryId);
@@ -794,6 +819,13 @@ const BookService = () => {
                     )}
                     <p className="text-xs text-muted-foreground">Final cost may vary. Pay via COD, Card, UPI, or Online.</p>
                   </div>
+
+                  {noPartnerWarning && (
+                    <div className="flex items-start gap-2 p-3 rounded-xl bg-destructive/5 border border-destructive/20">
+                      <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+                      <p className="text-sm text-destructive">No partners are currently available for your selected services in your area. You can still submit the booking — we'll notify you when a partner is found.</p>
+                    </div>
+                  )}
 
                   <Button variant="hero" size="lg" className="w-full py-6 text-base" onClick={handleConfirmBooking} disabled={submitting}>
                     {submitting ? "Creating Booking..." : "Proceed to Payment"}
