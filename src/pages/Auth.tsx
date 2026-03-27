@@ -100,8 +100,6 @@ const Auth = () => {
           metadata.phone = partnerPhone;
           metadata.address = partnerAddress;
         }
-          metadata.phone = partnerPhone;
-        }
         const credentials = authMethod === "email"
           ? { email, password, options: { data: metadata, emailRedirectTo: window.location.origin + "/auth" } }
           : { phone, password, options: { data: metadata } };
