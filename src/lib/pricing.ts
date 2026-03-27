@@ -1,107 +1,112 @@
-// INR pricing engine — market-competitive rates for Indian cities
+// INR pricing engine — slightly below market rates for Indian cities
 
 const SERVICE_PRICES: Record<string, number> = {
   // Home Services
-  "Deep Cleaning": 999,
-  "Regular Cleaning": 499,
-  "Bathroom Cleaning": 349,
-  "Kitchen Cleaning": 499,
-  "Kitchen Sink Cleaning": 199,
-  "Sofa Cleaning": 599,
-  "Carpet Cleaning": 699,
-  "Mopping": 199,
-  "Cooking": 349,
-  "Meal Prep": 299,
-  "Chopping": 149,
-  "Laundry": 299,
-  "Ironing": 199,
-  "Folding Clothes": 149,
-  "Arranging Things": 249,
-  "Wardrobe Organization": 399,
-  "Home Sanitization": 999,
-  "Window Cleaning": 149,
-  "Pest Control": 899,
-  "Water Tank Cleaning": 799,
-  "Dusting": 149,
-  "Dishwashing": 149,
-  "Balcony Cleaning": 299,
-  "Fridge Cleaning": 299,
+  "Deep Cleaning": 799,
+  "Regular Cleaning": 399,
+  "Bathroom Cleaning": 249,
+  "Kitchen Cleaning": 399,
+  "Kitchen Sink Cleaning": 149,
+  "Sofa Cleaning": 449,
+  "Carpet Cleaning": 549,
+  "Mopping": 149,
+  "Cooking": 249,
+  "Meal Prep": 199,
+  "Chopping": 99,
+  "Laundry": 199,
+  "Ironing": 149,
+  "Folding Clothes": 99,
+  "Arranging Things": 149,
+  "Wardrobe Organization": 299,
+  "Home Sanitization": 799,
+  "Window Cleaning": 99,
+  "Pest Control": 699,
+  "Water Tank Cleaning": 599,
+  "Dusting": 99,
+  "Dishwashing": 99,
+  "Balcony Cleaning": 199,
+  "Fridge Cleaning": 199,
 
   // Technical / Repairs & Installations
-  "Plumbing - Leak Fix": 299,
-  "Plumbing - Tap Installation": 249,
-  "Plumbing - Drain Cleaning": 349,
-  "Plumbing - Toilet Repair": 399,
-  "Electrical - Wiring": 399,
-  "Electrical - Switch/Socket": 149,
-  "Electrical - Fan Installation": 349,
-  "Electrical - Light Fixture": 249,
-  "Appliance Repair - Washing Machine": 499,
-  "Appliance Repair - Refrigerator": 549,
-  "Appliance Repair - Microwave": 399,
-  "AC Service - Regular": 499,
-  "AC Service - Gas Refill": 1499,
-  "AC Installation": 1299,
-  "Inverter/UPS Repair": 499,
-  "CCTV Installation": 999,
-  "Geyser Repair": 449,
-  "Carpentry Work": 499,
-  "Painting": 999,
-  "Furniture Assembly": 349,
+  "Plumbing - Leak Fix": 199,
+  "Plumbing - Tap Installation": 149,
+  "Plumbing - Drain Cleaning": 249,
+  "Plumbing - Toilet Repair": 299,
+  "Electrical - Wiring": 299,
+  "Electrical - Switch/Socket": 99,
+  "Electrical - Fan Installation": 249,
+  "Electrical - Light Fixture": 149,
+  "Appliance Repair - Washing Machine": 349,
+  "Appliance Repair - Refrigerator": 399,
+  "Appliance Repair - Microwave": 299,
+  "AC Service - Regular": 349,
+  "AC Service - Gas Refill": 1199,
+  "AC Installation": 999,
+  "Inverter/UPS Repair": 349,
+  "CCTV Installation": 799,
+  "Geyser Repair": 299,
+  "Carpentry Work": 349,
+  "Painting": 799,
+  "Furniture Assembly": 249,
 
   // Beauty & Grooming
-  "Men's Haircut": 199,
-  "Women's Haircut": 349,
-  "Kids Haircut": 149,
-  "Hair Coloring": 999,
-  "Hair Straightening": 1499,
-  "Hair Spa Treatment": 799,
-  "Keratin Treatment": 2499,
-  "Nail Art": 499,
-  "Manicure": 349,
-  "Pedicure": 399,
-  "Facial - Basic": 499,
-  "Facial - Premium": 999,
-  "Waxing - Full Body": 999,
-  "Waxing - Partial": 399,
-  "Threading": 49,
-  "Bridal Makeup": 4999,
-  "Party Makeup": 1999,
-  "Mehendi/Henna": 499,
-  "Men's Grooming": 399,
-  "Massage Therapy": 799,
+  "Men's Haircut": 149,
+  "Women's Haircut": 249,
+  "Kids Haircut": 99,
+  "Hair Coloring": 799,
+  "Hair Straightening": 1199,
+  "Hair Spa Treatment": 599,
+  "Keratin Treatment": 1999,
+  "Nail Art": 349,
+  "Manicure": 249,
+  "Pedicure": 299,
+  "Facial - Basic": 349,
+  "Facial - Premium": 799,
+  "Waxing - Full Body": 799,
+  "Waxing - Partial": 299,
+  "Threading": 29,
+  "Bridal Makeup": 3999,
+  "Party Makeup": 1499,
+  "Mehendi/Henna": 349,
+  "Men's Grooming": 299,
+  "Massage Therapy": 599,
 
   // Décor Services
-  "Birthday Décor - Basic": 1999,
-  "Birthday Décor - Premium": 4999,
-  "Birthday Décor - Kids Theme": 3499,
-  "Party Setup - House Party": 2999,
-  "Party Setup - Garden Party": 4999,
-  "Party Setup - Corporate Event": 7999,
-  "Surprise Décor - Room": 2499,
-  "Surprise Décor - Rooftop": 3999,
-  "Surprise Décor - Car": 1499,
-  "Candlelight Dinner Décor - Indoor": 2999,
-  "Candlelight Dinner Décor - Outdoor": 4499,
-  "Anniversary Décor": 2999,
-  "Baby Shower Décor": 3499,
-  "Housewarming Décor": 2499,
-  "Festival Décor": 1999,
-  "Wedding Décor - Small": 9999,
+  "Birthday Décor - Basic": 1499,
+  "Birthday Décor - Premium": 3999,
+  "Birthday Décor - Kids Theme": 2499,
+  "Party Setup - House Party": 1999,
+  "Party Setup - Garden Party": 3499,
+  "Party Setup - Corporate Event": 5999,
+  "Surprise Décor - Room": 1799,
+  "Surprise Décor - Rooftop": 2999,
+  "Surprise Décor - Car": 999,
+  "Candlelight Dinner Décor - Indoor": 1999,
+  "Candlelight Dinner Décor - Outdoor": 3499,
+  "Anniversary Décor": 1999,
+  "Baby Shower Décor": 2499,
+  "Housewarming Décor": 1799,
+  "Festival Décor": 1499,
+  "Wedding Décor - Small": 7999,
 
   // Other
-  "Custom Request": 499,
-  "Consultation": 199,
-  "Special Event Planning": 1999,
-  "Errand Service": 199,
-  "Pet Care": 399,
-  "Gardening": 349,
-  "Moving Help": 999,
-  "Grocery Shopping": 99,
-  "Document Delivery": 99,
+  "Custom Request": 349,
+  "Consultation": 149,
+  "Special Event Planning": 1499,
+  "Errand Service": 149,
+  "Pet Care": 299,
+  "Gardening": 249,
+  "Moving Help": 799,
+  "Grocery Shopping": 79,
+  "Document Delivery": 79,
 };
 
-const DEFAULT_PRICE = 399;
+const DEFAULT_PRICE = 299;
+
+/** Percentage discount when the customer has ALL tools */
+const ALL_TOOLS_DISCOUNT = 0.15;    // 15% off
+/** Percentage discount per tool the customer already has */
+const PER_TOOL_DISCOUNT = 0.05;     // 5% off per tool
 
 export function getServicePrice(serviceName: string): number {
   return SERVICE_PRICES[serviceName] ?? DEFAULT_PRICE;
@@ -110,14 +115,40 @@ export function getServicePrice(serviceName: string): number {
 export interface BookingServiceGroup {
   serviceNames: string[];
   quantities: Record<string, number>;
+  toolsWithUser?: string[];
+  noneOfAboveTools?: boolean;
+  totalTools?: number; // total tools for the service group
 }
 
 export function calculateBookingEstimate(serviceGroups: BookingServiceGroup[]): number {
   return serviceGroups.reduce((total, group) => {
-    return total + group.serviceNames.reduce((sum, name) => {
+    const groupTotal = group.serviceNames.reduce((sum, name) => {
       const base = getServicePrice(name);
       const qty = group.quantities[name] || 1;
       return sum + base * qty;
     }, 0);
+
+    // Tool-based discount
+    const totalTools = group.totalTools || 0;
+    const userTools = group.toolsWithUser?.length || 0;
+
+    if (group.noneOfAboveTools || totalTools === 0) {
+      // Customer has no tools — no discount
+      return total + groupTotal;
+    }
+
+    if (userTools >= totalTools && totalTools > 0) {
+      // Customer has ALL tools — bigger discount
+      return total + Math.round(groupTotal * (1 - ALL_TOOLS_DISCOUNT));
+    }
+
+    if (userTools > 0 && totalTools > 0) {
+      // Partial tools — proportional discount capped at ALL_TOOLS_DISCOUNT
+      const ratio = userTools / totalTools;
+      const discount = Math.min(ratio * ALL_TOOLS_DISCOUNT, ALL_TOOLS_DISCOUNT);
+      return total + Math.round(groupTotal * (1 - discount));
+    }
+
+    return total + groupTotal;
   }, 0);
 }
