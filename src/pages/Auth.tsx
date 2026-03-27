@@ -239,25 +239,27 @@ const Auth = () => {
             )}
             {/* Partner phone number (required) */}
             {isSignup && selectedRole === "partner" && (
-              <div>
-                <Input
-                  type="tel"
-                  placeholder="Your contact phone number *"
-                  value={partnerPhone}
-                  onChange={e => setPartnerPhone(e.target.value)}
-                  required
-                />
-                <p className="text-[10px] text-muted-foreground mt-1">Customers will see this after you accept a booking</p>
-              </div>
-              <div>
-                <Input
-                  placeholder="Your address / location *"
-                  value={partnerAddress}
-                  onChange={e => setPartnerAddress(e.target.value)}
-                  required
-                />
-                <p className="text-[10px] text-muted-foreground mt-1">Used to match nearby bookings</p>
-              </div>
+              <>
+                <div>
+                  <Input
+                    type="tel"
+                    placeholder="Your contact phone number *"
+                    value={partnerPhone}
+                    onChange={e => setPartnerPhone(e.target.value)}
+                    required
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">Customers will see this after you accept a booking</p>
+                </div>
+                <div>
+                  <Input
+                    placeholder="Your address / location *"
+                    value={partnerAddress}
+                    onChange={e => setPartnerAddress(e.target.value)}
+                    required
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">Used to match nearby bookings</p>
+                </div>
+              </>
             )}
             <div className="relative">
               <Input type={showPassword ? "text" : "password"} placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required minLength={8} />
