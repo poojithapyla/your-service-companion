@@ -396,6 +396,7 @@ const AdminDashboard = () => {
                 </table>
               </div>
             </div>
+            </div>
           )}
 
           {/* USERS */}
