@@ -337,9 +337,23 @@ const AdminDashboard = () => {
 
           {/* BOOKINGS */}
           {activeNav === "bookings" && (
+            <div className="space-y-4">
+              <div className="flex flex-wrap gap-2">
+                {["all", "pending", "accepted", "in_progress", "completed", "cancelled", "rejected"].map(s => (
+                  <button
+                    key={s}
+                    onClick={() => setStatusFilter(s)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors capitalize ${
+                      statusFilter === s ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {s === "all" ? "All" : s.replace("_", " ")}
+                  </button>
+                ))}
+              </div>
             <div className="bg-card rounded-xl border border-border">
               <div className="px-5 py-4 border-b border-border flex items-center justify-between">
-                <h2 className="font-display text-lg font-semibold text-foreground">All Bookings</h2>
+                <h2 className="font-display text-lg font-semibold text-foreground">Bookings</h2>
                 <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">{sortedBookings.length} total</span>
               </div>
               <div className="overflow-x-auto">
