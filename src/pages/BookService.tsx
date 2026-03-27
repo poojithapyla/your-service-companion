@@ -212,7 +212,22 @@ const BookService = () => {
     return true;
   };
 
-  const estimatedCost = calculateBookingEstimate(services.map(s => ({ serviceNames: s.serviceNames, quantities: s.quantities })));
+  const estimatedCost = useMemo(() => {
+    return calculateBookingEstimate(services.map(s => {
+      const cat = categories.find(c => c.id === s.categoryId);
+      const totalTools = cat ? s.serviceNames.reduce((sum, name) => {
+        const svcDef = cat.services.find(sv => sv.name === name);
+        return sum + (svcDef?.tools?.length || 0);
+      }, 0) : 0;
+      return {
+        serviceNames: s.serviceNames,
+        quantities: s.quantities,
+        toolsWithUser: s.toolsWithUser,
+        noneOfAboveTools: s.noneOfAboveTools,
+        totalTools,
+      };
+    }));
+  }, [services]);
 
   const allToolsForReview = services.flatMap(s => {
     const cat = categories.find(c => c.id === s.categoryId);
