@@ -31,6 +31,75 @@ const navItems: { label: string; id: NavSection; icon: any }[] = [
   { label: "Control Panel", id: "control", icon: Settings },
 ];
 
+// Users & Partners drill-down component
+const UsersPartnersSection = ({ profiles, searchQuery }: { profiles: any[]; searchQuery: string }) => {
+  const [view, setView] = useState<"all" | "customers" | "partners">("all");
+  const customers = profiles.filter(p => !p.partner_categories || p.partner_categories.length === 0);
+  const partners = profiles.filter(p => p.partner_categories && p.partner_categories.length > 0);
+  const displayed = view === "customers" ? customers : view === "partners" ? partners : profiles;
+  const q = searchQuery.toLowerCase();
+  const filtered = displayed.filter(p => !q || (p.full_name || "").toLowerCase().includes(q) || (p.phone || "").includes(q));
+
+  return (
+    <>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <button onClick={() => setView(view === "customers" ? "all" : "customers")} className={`bg-card rounded-xl border p-5 text-left transition-all ${view === "customers" ? "border-primary ring-1 ring-primary/30" : "border-border hover:border-primary/30"}`}>
+          <div className="flex items-center gap-2 mb-2">
+            <Users className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm font-medium text-foreground">Customers</span>
+          </div>
+          <div className="text-3xl font-bold text-foreground">{customers.length}</div>
+          <p className="text-xs text-muted-foreground mt-1">{view === "customers" ? "Showing customers ▼" : "Click to filter"}</p>
+        </button>
+        <button onClick={() => setView(view === "partners" ? "all" : "partners")} className={`bg-card rounded-xl border p-5 text-left transition-all ${view === "partners" ? "border-primary ring-1 ring-primary/30" : "border-border hover:border-primary/30"}`}>
+          <div className="flex items-center gap-2 mb-2">
+            <UserCheck className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm font-medium text-foreground">Partners</span>
+          </div>
+          <div className="text-3xl font-bold text-foreground">{partners.length}</div>
+          <p className="text-xs text-muted-foreground mt-1">{view === "partners" ? "Showing partners ▼" : "Click to filter"}</p>
+        </button>
+      </div>
+      <div className="bg-card rounded-xl border border-border">
+        <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+          <h2 className="font-display text-lg font-semibold text-foreground">
+            {view === "customers" ? "Customers" : view === "partners" ? "Partners" : "All Users"}
+          </h2>
+          <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">{filtered.length}</span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-border">
+                {["Name", "Phone", "Role", "Categories", "Address", "Joined"].map(h => (
+                  <th key={h} className="text-left text-xs font-medium text-muted-foreground px-5 py-3">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(p => (
+                <tr key={p.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                  <td className="px-5 py-3 text-sm font-medium text-foreground">{p.full_name || "—"}</td>
+                  <td className="px-5 py-3 text-sm text-muted-foreground">{p.phone || "—"}</td>
+                  <td className="px-5 py-3">
+                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${p.partner_categories?.length > 0 ? "text-blue-600 bg-blue-500/10" : "text-accent bg-accent/10"}`}>
+                      {p.partner_categories?.length > 0 ? "Partner" : "Customer"}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3 text-sm text-muted-foreground">{p.partner_categories?.length > 0 ? p.partner_categories.join(", ") : "—"}</td>
+                  <td className="px-5 py-3 text-sm text-muted-foreground max-w-[150px] truncate">{p.saved_address || "—"}</td>
+                  <td className="px-5 py-3 text-sm text-muted-foreground">{new Date(p.created_at).toLocaleDateString()}</td>
+                </tr>
+              ))}
+              {filtered.length === 0 && <tr><td colSpan={6} className="px-5 py-8 text-center text-sm text-muted-foreground">No users found</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
+  );
+};
+
 const AdminDashboard = () => {
   const { signOut } = useAuth();
   const [activeNav, setActiveNav] = useState<NavSection>("overview");
