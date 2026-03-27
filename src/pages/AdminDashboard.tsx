@@ -31,6 +31,75 @@ const navItems: { label: string; id: NavSection; icon: any }[] = [
   { label: "Control Panel", id: "control", icon: Settings },
 ];
 
+// Users & Partners drill-down component
+const UsersPartnersSection = ({ profiles, searchQuery }: { profiles: any[]; searchQuery: string }) => {
+  const [view, setView] = useState<"all" | "customers" | "partners">("all");
+  const customers = profiles.filter(p => !p.partner_categories || p.partner_categories.length === 0);
+  const partners = profiles.filter(p => p.partner_categories && p.partner_categories.length > 0);
+  const displayed = view === "customers" ? customers : view === "partners" ? partners : profiles;
+  const q = searchQuery.toLowerCase();
+  const filtered = displayed.filter(p => !q || (p.full_name || "").toLowerCase().includes(q) || (p.phone || "").includes(q));
+
+  return (
+    <>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <button onClick={() => setView(view === "customers" ? "all" : "customers")} className={`bg-card rounded-xl border p-5 text-left transition-all ${view === "customers" ? "border-primary ring-1 ring-primary/30" : "border-border hover:border-primary/30"}`}>
+          <div className="flex items-center gap-2 mb-2">
+            <Users className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm font-medium text-foreground">Customers</span>
+          </div>
+          <div className="text-3xl font-bold text-foreground">{customers.length}</div>
+          <p className="text-xs text-muted-foreground mt-1">{view === "customers" ? "Showing customers ▼" : "Click to filter"}</p>
+        </button>
+        <button onClick={() => setView(view === "partners" ? "all" : "partners")} className={`bg-card rounded-xl border p-5 text-left transition-all ${view === "partners" ? "border-primary ring-1 ring-primary/30" : "border-border hover:border-primary/30"}`}>
+          <div className="flex items-center gap-2 mb-2">
+            <UserCheck className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm font-medium text-foreground">Partners</span>
+          </div>
+          <div className="text-3xl font-bold text-foreground">{partners.length}</div>
+          <p className="text-xs text-muted-foreground mt-1">{view === "partners" ? "Showing partners ▼" : "Click to filter"}</p>
+        </button>
+      </div>
+      <div className="bg-card rounded-xl border border-border">
+        <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+          <h2 className="font-display text-lg font-semibold text-foreground">
+            {view === "customers" ? "Customers" : view === "partners" ? "Partners" : "All Users"}
+          </h2>
+          <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">{filtered.length}</span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-border">
+                {["Name", "Phone", "Role", "Categories", "Address", "Joined"].map(h => (
+                  <th key={h} className="text-left text-xs font-medium text-muted-foreground px-5 py-3">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(p => (
+                <tr key={p.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                  <td className="px-5 py-3 text-sm font-medium text-foreground">{p.full_name || "—"}</td>
+                  <td className="px-5 py-3 text-sm text-muted-foreground">{p.phone || "—"}</td>
+                  <td className="px-5 py-3">
+                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${p.partner_categories?.length > 0 ? "text-blue-600 bg-blue-500/10" : "text-accent bg-accent/10"}`}>
+                      {p.partner_categories?.length > 0 ? "Partner" : "Customer"}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3 text-sm text-muted-foreground">{p.partner_categories?.length > 0 ? p.partner_categories.join(", ") : "—"}</td>
+                  <td className="px-5 py-3 text-sm text-muted-foreground max-w-[150px] truncate">{p.saved_address || "—"}</td>
+                  <td className="px-5 py-3 text-sm text-muted-foreground">{new Date(p.created_at).toLocaleDateString()}</td>
+                </tr>
+              ))}
+              {filtered.length === 0 && <tr><td colSpan={6} className="px-5 py-8 text-center text-sm text-muted-foreground">No users found</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
+  );
+};
+
 const AdminDashboard = () => {
   const { signOut } = useAuth();
   const [activeNav, setActiveNav] = useState<NavSection>("overview");
@@ -40,6 +109,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [sortField, setSortField] = useState<"created_at" | "estimated_cost" | "status">("created_at");
   const [sortAsc, setSortAsc] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   useEffect(() => {
     fetchData();
@@ -82,10 +152,11 @@ const AdminDashboard = () => {
   const completedCount = bookings.filter(b => b.status === "completed").length;
   const completionRate = bookings.length > 0 ? Math.round((completedCount / bookings.length) * 100) : 0;
 
-  // Sort bookings
+  // Sort & filter bookings
   const sortedBookings = useMemo(() => {
     const q = searchQuery.toLowerCase();
     let filtered = bookings.filter(b => {
+      if (statusFilter !== "all" && b.status !== statusFilter) return false;
       if (!q) return true;
       return getServiceNames(b.services).toLowerCase().includes(q)
         || getProfileName(b.user_id).toLowerCase().includes(q)
@@ -102,7 +173,7 @@ const AdminDashboard = () => {
       return 0;
     });
     return filtered;
-  }, [bookings, searchQuery, sortField, sortAsc, profiles]);
+  }, [bookings, searchQuery, sortField, sortAsc, statusFilter, profiles]);
 
   const toggleSort = (field: typeof sortField) => {
     if (sortField === field) setSortAsc(!sortAsc);
@@ -168,6 +239,17 @@ const AdminDashboard = () => {
             </button>
           ))}
         </nav>
+        <div className="space-y-1 border-t border-border pt-3 mt-3">
+          <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-muted-foreground" asChild>
+            <Link to="/book"><Plus className="w-4 h-4" /> Book a Service</Link>
+          </Button>
+          <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-muted-foreground" asChild>
+            <Link to="/auth?mode=signup&role=partner"><UserCheck className="w-4 h-4" /> Become a Partner</Link>
+          </Button>
+          <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-muted-foreground" asChild>
+            <Link to="/dashboard"><Calendar className="w-4 h-4" /> Customer Dashboard</Link>
+          </Button>
+        </div>
         <Button variant="ghost" size="sm" className="justify-start gap-2 text-muted-foreground" asChild>
           <Link to="/"><LogOut className="w-4 h-4" /> Back to Site</Link>
         </Button>
@@ -255,9 +337,23 @@ const AdminDashboard = () => {
 
           {/* BOOKINGS */}
           {activeNav === "bookings" && (
+            <div className="space-y-4">
+              <div className="flex flex-wrap gap-2">
+                {["all", "pending", "accepted", "in_progress", "completed", "cancelled", "rejected"].map(s => (
+                  <button
+                    key={s}
+                    onClick={() => setStatusFilter(s)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors capitalize ${
+                      statusFilter === s ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {s === "all" ? "All" : s.replace("_", " ")}
+                  </button>
+                ))}
+              </div>
             <div className="bg-card rounded-xl border border-border">
               <div className="px-5 py-4 border-b border-border flex items-center justify-between">
-                <h2 className="font-display text-lg font-semibold text-foreground">All Bookings</h2>
+                <h2 className="font-display text-lg font-semibold text-foreground">Bookings</h2>
                 <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">{sortedBookings.length} total</span>
               </div>
               <div className="overflow-x-auto">
@@ -300,59 +396,12 @@ const AdminDashboard = () => {
                 </table>
               </div>
             </div>
+            </div>
           )}
 
           {/* USERS */}
           {activeNav === "users" && (
-            <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="bg-card rounded-xl border border-border p-5">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Users className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm font-medium text-foreground">Total Users</span>
-                  </div>
-                  <div className="text-3xl font-bold text-foreground">{profiles.length}</div>
-                </div>
-                <div className="bg-card rounded-xl border border-border p-5">
-                  <div className="flex items-center gap-2 mb-2">
-                    <UserCheck className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm font-medium text-foreground">Partners</span>
-                  </div>
-                  <div className="text-3xl font-bold text-foreground">
-                    {profiles.filter(p => p.partner_categories && p.partner_categories.length > 0).length}
-                  </div>
-                </div>
-              </div>
-              <div className="bg-card rounded-xl border border-border">
-                <div className="px-5 py-4 border-b border-border">
-                  <h2 className="font-display text-lg font-semibold text-foreground">All Users</h2>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-border">
-                        {["Name", "Phone", "Categories", "Address", "Joined"].map(h => (
-                          <th key={h} className="text-left text-xs font-medium text-muted-foreground px-5 py-3">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {profiles.map(p => (
-                        <tr key={p.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                          <td className="px-5 py-3 text-sm font-medium text-foreground">{p.full_name || "—"}</td>
-                          <td className="px-5 py-3 text-sm text-muted-foreground">{p.phone || "—"}</td>
-                          <td className="px-5 py-3 text-sm text-muted-foreground">
-                            {p.partner_categories?.length > 0 ? p.partner_categories.join(", ") : "Customer"}
-                          </td>
-                          <td className="px-5 py-3 text-sm text-muted-foreground max-w-[150px] truncate">{p.saved_address || "—"}</td>
-                          <td className="px-5 py-3 text-sm text-muted-foreground">{new Date(p.created_at).toLocaleDateString()}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </>
+            <UsersPartnersSection profiles={profiles} searchQuery={searchQuery} />
           )}
 
           {/* FEEDBACK */}
