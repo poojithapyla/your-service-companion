@@ -781,12 +781,18 @@ const BookService = () => {
                     </div>
                   )}
 
-                  <div className="bg-primary/5 rounded-xl p-5 border border-primary/20">
+                  <div className="bg-primary/5 rounded-xl p-5 border border-primary/20 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="font-display text-lg font-bold text-foreground">Estimated Cost</span>
-                      <span className="text-2xl font-bold text-gradient-warm">₹{estimatedCost}</span>
+                      <span className="text-2xl font-bold text-gradient-warm">₹{estimatedCost.toLocaleString()}</span>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">Final cost may vary. Pay via COD, Card, UPI, or Online.</p>
+                    {services.some(s => s.toolsWithUser.length > 0) && (
+                      <p className="text-xs text-accent">✓ Tool discount applied — you're providing some tools</p>
+                    )}
+                    {services.some(s => s.noneOfAboveTools) && (
+                      <p className="text-xs text-muted-foreground">Partner brings all tools — no tool discount</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">Final cost may vary. Pay via COD, Card, UPI, or Online.</p>
                   </div>
 
                   <Button variant="hero" size="lg" className="w-full py-6 text-base" onClick={handleConfirmBooking} disabled={submitting}>
