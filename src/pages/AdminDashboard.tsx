@@ -109,6 +109,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [sortField, setSortField] = useState<"created_at" | "estimated_cost" | "status">("created_at");
   const [sortAsc, setSortAsc] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   useEffect(() => {
     fetchData();
