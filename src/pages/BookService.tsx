@@ -437,8 +437,68 @@ const BookService = () => {
                 </div>
               )}
 
-              {/* Step 1: Services */}
-              {step === 1 && (
+              {/* Step 1: Packers & Movers */}
+              {step === 1 && isPackersCategory && (
+                <div className="space-y-6">
+                  <h2 className="font-display text-2xl font-bold text-foreground">Packers & Movers Details</h2>
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1 block">From Address <span className="text-destructive">*</span></label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                      <Input placeholder="Pickup address" className="pl-9" value={packersFrom} onChange={e => setPackersFrom(e.target.value)} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1 block">To Address <span className="text-destructive">*</span></label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                      <Input placeholder="Drop-off address" className="pl-9" value={packersTo} onChange={e => setPackersTo(e.target.value)} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1 block">What needs to be moved? <span className="text-destructive">*</span></label>
+                    <Textarea
+                      placeholder="Describe all items that need to be moved in detail..."
+                      value={packersDescription}
+                      onChange={e => setPackersDescription(e.target.value)}
+                      rows={3}
+                    />
+                    {!packersDescription.trim() && <p className="text-xs text-destructive mt-1">This field is required</p>}
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-2 block">Select Items & Quantities <span className="text-destructive">*</span></label>
+                    <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                      {PACKERS_ITEMS.map(item => (
+                        <div key={item} className="flex items-center justify-between p-3 rounded-lg border border-border">
+                          <span className="text-sm text-foreground">{item}</span>
+                          <Input
+                            type="number"
+                            min={0}
+                            className="w-20"
+                            placeholder="0"
+                            value={packersItems[item] || ""}
+                            onChange={e => setPackersItems(prev => ({ ...prev, [item]: parseInt(e.target.value) || 0 }))}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    {!Object.values(packersItems).some(v => v > 0) && (
+                      <p className="text-xs text-destructive mt-1">Select at least one item</p>
+                    )}
+                  </div>
+                  {estimatedCost > 0 && (
+                    <div className="bg-primary/5 rounded-xl p-4 border border-primary/20">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-foreground">Estimated Cost</span>
+                        <span className="text-lg font-bold text-gradient-warm">₹{estimatedCost.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Step 1: Services (non-packers) */}
+              {step === 1 && !isPackersCategory && (
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <h2 className="font-display text-2xl font-bold text-foreground">Select Services</h2>
