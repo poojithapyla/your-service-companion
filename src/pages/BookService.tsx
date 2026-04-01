@@ -201,6 +201,11 @@ const BookService = () => {
   const canProceed = () => {
     if (step === 0) return !!activeService?.categoryId;
     if (step === 1) {
+      // For Packers & Movers, require items, from/to, description
+      if (isPackersCategory) {
+        const hasItems = Object.values(packersItems).some(v => v > 0);
+        return hasItems && !!packersFrom.trim() && !!packersTo.trim() && !!packersDescription.trim();
+      }
       return services.every(s => {
         if (s.serviceNames.length === 0) return false;
         if (s.serviceNames.some((n: string) => isOtherService(n)) && (!s.customService || s.customService.trim() === "")) return false;
@@ -208,10 +213,10 @@ const BookService = () => {
       });
     }
     if (step === 2) {
+      if (isPackersCategory) return true; // no tools for packers
       if (needsMandatoryPhotos && photos.length === 0) return false;
       if (!allToolsHandled) return false;
       if (needsMandatoryNotes && !notes.trim()) return false;
-      // Check all quantity fields are filled
       for (const qs of selectedQuantityServices) {
         const svc = services[qs.svcIdx];
         if (!svc.quantities[qs.serviceName] || svc.quantities[qs.serviceName] < 1) return false;
