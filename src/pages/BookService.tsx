@@ -7,7 +7,7 @@ import { ArrowLeft, ArrowRight, Check, Upload, Plus, Trash2, MapPin, Clock, Zap,
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { categories, PHOTO_REQUIRED_SERVICES, QUANTITY_SERVICES, type CategoryDefinition, type ServiceDefinition } from "@/data/services";
 import { getToolEmoji } from "@/data/toolIcons";
-import { calculateBookingEstimate } from "@/lib/pricing";
+import { calculateBookingEstimate, getPackersEstimate, PACKERS_ITEMS } from "@/lib/pricing";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
