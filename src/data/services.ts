@@ -16,6 +16,7 @@ export interface CategoryDefinition {
   description: string;
   color: string;
   services: ServiceDefinition[];
+  isPackersMovers?: boolean;
 }
 
 export const categories: CategoryDefinition[] = [
