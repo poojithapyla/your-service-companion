@@ -22,6 +22,27 @@ const PartnerDashboard = () => {
   const [bookings, setBookings] = useState<any[]>([]);
   const [filter, setFilter] = useState<string>("all");
   const [loading, setLoading] = useState(true);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+
+  useEffect(() => {
+    if ("Notification" in window) {
+      setNotificationsEnabled(Notification.permission === "granted");
+    }
+  }, []);
+
+  const requestNotifications = useCallback(async () => {
+    if (!("Notification" in window)) { toast.error("Notifications not supported"); return; }
+    const perm = await Notification.requestPermission();
+    setNotificationsEnabled(perm === "granted");
+    if (perm === "granted") toast.success("Notifications enabled!");
+    else toast.error("Notifications blocked");
+  }, []);
+
+  const showNotification = useCallback((title: string, body: string) => {
+    if (notificationsEnabled && "Notification" in window) {
+      new Notification(title, { body, icon: "/icon-192.png" });
+    }
+  }, [notificationsEnabled]);
 
   useEffect(() => {
     if (user) {
