@@ -302,23 +302,35 @@ const BookService = () => {
 
     setSubmitting(true);
     try {
+      const packersData = isPackersCategory ? {
+        packersFrom,
+        packersTo,
+        packersDescription,
+        packersItems: Object.fromEntries(Object.entries(packersItems).filter(([_, v]) => v > 0)),
+      } : null;
+
       const bookingData = {
         user_id: user.id,
-        services: services.map(s => ({
+        services: isPackersCategory ? [{
+          categoryId: "packers",
+          categoryLabel: "Packers & Movers",
+          serviceNames: ["Packers & Movers"],
+          ...packersData,
+        }] : services.map(s => ({
           categoryId: s.categoryId,
           categoryLabel: categories.find(c => c.id === s.categoryId)?.label,
           serviceNames: s.serviceNames,
           customService: s.customService,
           quantities: s.quantities,
         })),
-        tools_summary: allToolsForReview,
+        tools_summary: isPackersCategory ? [] : allToolsForReview,
         schedule_type: scheduleType,
         schedule_date: scheduleType !== "instant" && scheduleDate ? scheduleDate : null,
         book_for: bookFor,
-        address: bookFor === "self" ? selfAddress : otherDetails.address,
+        address: isPackersCategory ? packersFrom : (bookFor === "self" ? selfAddress : otherDetails.address),
         recipient_name: bookFor === "other" ? otherDetails.name : null,
         recipient_phone: bookFor === "other" ? otherDetails.phone : null,
-        notes: notes || null,
+        notes: isPackersCategory ? `Moving: ${packersDescription}\nFrom: ${packersFrom}\nTo: ${packersTo}` : (notes || null),
         photos: photos,
         estimated_cost: estimatedCost,
         status: "pending",
