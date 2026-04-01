@@ -129,6 +129,15 @@ const PartnerDashboard = () => {
             <span className="font-display text-lg font-bold text-foreground">Partner Dashboard</span>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={requestNotifications}
+              className={notificationsEnabled ? "text-accent" : "text-muted-foreground"}
+              title={notificationsEnabled ? "Notifications enabled" : "Enable notifications"}
+            >
+              {notificationsEnabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+            </Button>
             <span className="text-sm text-muted-foreground">{profile?.full_name}</span>
             <Button variant="ghost" size="sm" onClick={signOut}>
               <LogOut className="w-4 h-4 mr-1" /> Logout
