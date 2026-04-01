@@ -850,24 +850,40 @@ const BookService = () => {
                     </button>
                     <h2 className="font-display text-2xl font-bold text-foreground">Review & Confirm</h2>
                   </div>
-                  <div className="space-y-3">
-                    {services.map((s) => {
-                      const cat = categories.find(c => c.id === s.categoryId);
-                      return (
-                        <div key={s.id} className="bg-muted/50 rounded-xl p-4">
-                          <div className="text-sm font-semibold text-foreground">{cat?.label}</div>
-                          <div className="text-sm text-muted-foreground mt-1">
-                            {s.serviceNames.map(n => isOtherService(n) ? s.customService : n).join(", ")}
+                  {isPackersCategory ? (
+                    <div className="bg-muted/50 rounded-xl p-4 space-y-2">
+                      <div className="text-sm font-semibold text-foreground">🚚 Packers & Movers</div>
+                      <div className="text-xs text-muted-foreground"><span className="font-medium text-foreground">From:</span> {packersFrom}</div>
+                      <div className="text-xs text-muted-foreground"><span className="font-medium text-foreground">To:</span> {packersTo}</div>
+                      <div className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Description:</span> {packersDescription}</div>
+                      <div className="mt-2 space-y-1">
+                        {Object.entries(packersItems).filter(([_, v]) => v > 0).map(([item, qty]) => (
+                          <div key={item} className="text-xs text-muted-foreground">
+                            {item}: <span className="font-medium text-foreground">×{qty}</span>
                           </div>
-                          {Object.entries(s.quantities).filter(([_, v]) => v > 0).map(([name, qty]) => (
-                            <div key={name} className="text-xs text-muted-foreground mt-1">
-                              {name}: <span className="font-medium text-foreground">{qty}</span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {services.map((s) => {
+                        const cat = categories.find(c => c.id === s.categoryId);
+                        return (
+                          <div key={s.id} className="bg-muted/50 rounded-xl p-4">
+                            <div className="text-sm font-semibold text-foreground">{cat?.label}</div>
+                            <div className="text-sm text-muted-foreground mt-1">
+                              {s.serviceNames.map(n => isOtherService(n) ? s.customService : n).join(", ")}
                             </div>
-                          ))}
-                        </div>
-                      );
-                    })}
-                  </div>
+                            {Object.entries(s.quantities).filter(([_, v]) => v > 0).map(([name, qty]) => (
+                              <div key={name} className="text-xs text-muted-foreground mt-1">
+                                {name}: <span className="font-medium text-foreground">{qty}</span>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
 
                   {allToolsForReview.length > 0 && (
                     <div>
