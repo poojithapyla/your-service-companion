@@ -95,7 +95,14 @@ const BookService = () => {
     updateService("noneOfAboveTools", false);
     updateService("quantities", {});
     setServiceSearch("");
-    setStep(1);
+    const cat = categories.find(c => c.id === catId);
+    if (cat?.isPackersMovers) {
+      // Skip services step — go directly to Packers details
+      updateService("serviceNames", ["Packers & Movers"]);
+      setStep(1); // Will show packers-specific UI
+    } else {
+      setStep(1);
+    }
   };
 
   const toggleService = (name: string) => {
