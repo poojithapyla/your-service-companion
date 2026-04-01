@@ -89,16 +89,9 @@ const SERVICE_PRICES: Record<string, number> = {
   "Festival Décor": 1499,
   "Wedding Décor - Small": 7999,
 
-  // Other
-  "Custom Request": 349,
-  "Consultation": 149,
-  "Special Event Planning": 1499,
-  "Errand Service": 149,
-  "Pet Care": 299,
-  "Gardening": 249,
-  "Moving Help": 799,
-  "Grocery Shopping": 79,
-  "Document Delivery": 79,
+  // Packers & Movers — calculated per-item, these are base rates
+  "Packers & Movers": 0, // dynamic pricing based on items
+
 };
 
 const DEFAULT_PRICE = 299;
