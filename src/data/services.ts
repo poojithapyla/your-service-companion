@@ -1,4 +1,4 @@
-import { Home, Wrench, Scissors, PartyPopper, Sparkles } from "lucide-react";
+import { Home, Wrench, Scissors, PartyPopper, Truck } from "lucide-react";
 
 export interface ServiceDefinition {
   name: string;
