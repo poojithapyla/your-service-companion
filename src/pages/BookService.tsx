@@ -75,6 +75,7 @@ const BookService = () => {
 
   const activeService = services[activeServiceIdx];
   const selectedCategory = categories.find(c => c.id === activeService?.categoryId);
+  const isPackersCategory = selectedCategory?.isPackersMovers === true;
 
   const filteredServices = useMemo(() => {
     if (!selectedCategory) return [];
