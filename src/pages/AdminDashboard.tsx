@@ -494,7 +494,7 @@ const AdminDashboard = () => {
                   <Package className="w-5 h-5 text-primary" /> Services
                 </h3>
                 <div className="space-y-2">
-                  {["Home Services", "Repairs & Installations", "Beauty & Grooming", "Décor Services", "Other / Custom"].map(cat => (
+                  {["Home Services", "Repairs & Installations", "Beauty & Grooming", "Décor Services", "Packers & Movers"].map(cat => (
                     <div key={cat} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                       <span className="text-sm text-foreground">{cat}</span>
                       <span className="text-xs text-muted-foreground">

@@ -1,4 +1,4 @@
-import { Home, Wrench, Scissors, PartyPopper, Sparkles } from "lucide-react";
+import { Home, Wrench, Scissors, PartyPopper, Truck } from "lucide-react";
 
 export interface ServiceDefinition {
   name: string;
@@ -16,6 +16,7 @@ export interface CategoryDefinition {
   description: string;
   color: string;
   services: ServiceDefinition[];
+  isPackersMovers?: boolean;
 }
 
 export const categories: CategoryDefinition[] = [
@@ -140,23 +141,13 @@ export const categories: CategoryDefinition[] = [
     ],
   },
   {
-    id: "other",
-    icon: Sparkles,
-    label: "Other / Custom",
-    description: "Request any custom service you need",
+    id: "packers",
+    icon: Truck,
+    label: "Packers & Movers",
+    description: "Packing, moving & relocation services",
     color: "bg-emerald-500/10 text-emerald-600",
-    services: [
-      { name: "Custom Request", tools: [] },
-      { name: "Consultation", tools: [] },
-      { name: "Special Event Planning", tools: [] },
-      { name: "Errand Service", tools: [] },
-      { name: "Pet Care", tools: ["Pet Shampoo", "Brush", "Leash", "Treats", "Towels"] },
-      { name: "Gardening", tools: ["Pruning Shears", "Gloves", "Watering Can", "Fertilizer", "Pots"] },
-      { name: "Moving Help", tools: ["Boxes", "Tape", "Bubble Wrap", "Dolly", "Straps"] },
-      { name: "Grocery Shopping", tools: ["Shopping Bags", "Delivery Vehicle"] },
-      { name: "Document Delivery", tools: ["Delivery Vehicle", "ID Proof"] },
-      { name: "Other (specify below)", tools: [] },
-    ],
+    isPackersMovers: true,
+    services: [],
   },
 ];
 

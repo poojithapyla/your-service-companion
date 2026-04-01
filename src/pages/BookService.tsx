@@ -7,7 +7,7 @@ import { ArrowLeft, ArrowRight, Check, Upload, Plus, Trash2, MapPin, Clock, Zap,
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { categories, PHOTO_REQUIRED_SERVICES, QUANTITY_SERVICES, type CategoryDefinition, type ServiceDefinition } from "@/data/services";
 import { getToolEmoji } from "@/data/toolIcons";
-import { calculateBookingEstimate } from "@/lib/pricing";
+import { calculateBookingEstimate, getPackersEstimate, PACKERS_ITEMS } from "@/lib/pricing";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -57,6 +57,12 @@ const BookService = () => {
   const [submitting, setSubmitting] = useState(false);
   const [noPartnerWarning, setNoPartnerWarning] = useState(false);
 
+  // Packers & Movers state
+  const [packersItems, setPackersItems] = useState<Record<string, number>>({});
+  const [packersFrom, setPackersFrom] = useState("");
+  const [packersTo, setPackersTo] = useState("");
+  const [packersDescription, setPackersDescription] = useState("");
+
   useEffect(() => {
     const saved = localStorage.getItem(SAVED_ADDRESS_KEY);
     if (saved) setSelfAddress(saved);
@@ -69,6 +75,7 @@ const BookService = () => {
 
   const activeService = services[activeServiceIdx];
   const selectedCategory = categories.find(c => c.id === activeService?.categoryId);
+  const isPackersCategory = selectedCategory?.isPackersMovers === true;
 
   const filteredServices = useMemo(() => {
     if (!selectedCategory) return [];
@@ -88,7 +95,14 @@ const BookService = () => {
     updateService("noneOfAboveTools", false);
     updateService("quantities", {});
     setServiceSearch("");
-    setStep(1);
+    const cat = categories.find(c => c.id === catId);
+    if (cat?.isPackersMovers) {
+      // Skip services step — go directly to Packers details
+      updateService("serviceNames", ["Packers & Movers"]);
+      setStep(1); // Will show packers-specific UI
+    } else {
+      setStep(1);
+    }
   };
 
   const toggleService = (name: string) => {
@@ -187,6 +201,11 @@ const BookService = () => {
   const canProceed = () => {
     if (step === 0) return !!activeService?.categoryId;
     if (step === 1) {
+      // For Packers & Movers, require items, from/to, description
+      if (isPackersCategory) {
+        const hasItems = Object.values(packersItems).some(v => v > 0);
+        return hasItems && !!packersFrom.trim() && !!packersTo.trim() && !!packersDescription.trim();
+      }
       return services.every(s => {
         if (s.serviceNames.length === 0) return false;
         if (s.serviceNames.some((n: string) => isOtherService(n)) && (!s.customService || s.customService.trim() === "")) return false;
@@ -194,10 +213,10 @@ const BookService = () => {
       });
     }
     if (step === 2) {
+      if (isPackersCategory) return true; // no tools for packers
       if (needsMandatoryPhotos && photos.length === 0) return false;
       if (!allToolsHandled) return false;
       if (needsMandatoryNotes && !notes.trim()) return false;
-      // Check all quantity fields are filled
       for (const qs of selectedQuantityServices) {
         const svc = services[qs.svcIdx];
         if (!svc.quantities[qs.serviceName] || svc.quantities[qs.serviceName] < 1) return false;
@@ -214,6 +233,10 @@ const BookService = () => {
   };
 
   const estimatedCost = useMemo(() => {
+    // Packers & Movers — use item-based pricing
+    if (isPackersCategory) {
+      return getPackersEstimate(packersItems);
+    }
     return calculateBookingEstimate(services.map(s => {
       const cat = categories.find(c => c.id === s.categoryId);
       const totalTools = cat ? s.serviceNames.reduce((sum, name) => {
@@ -228,7 +251,7 @@ const BookService = () => {
         totalTools,
       };
     }));
-  }, [services]);
+  }, [services, isPackersCategory, packersItems]);
 
   const allToolsForReview = services.flatMap(s => {
     const cat = categories.find(c => c.id === s.categoryId);
@@ -279,23 +302,35 @@ const BookService = () => {
 
     setSubmitting(true);
     try {
+      const packersData = isPackersCategory ? {
+        packersFrom,
+        packersTo,
+        packersDescription,
+        packersItems: Object.fromEntries(Object.entries(packersItems).filter(([_, v]) => v > 0)),
+      } : null;
+
       const bookingData = {
         user_id: user.id,
-        services: services.map(s => ({
+        services: isPackersCategory ? [{
+          categoryId: "packers",
+          categoryLabel: "Packers & Movers",
+          serviceNames: ["Packers & Movers"],
+          ...packersData,
+        }] : services.map(s => ({
           categoryId: s.categoryId,
           categoryLabel: categories.find(c => c.id === s.categoryId)?.label,
           serviceNames: s.serviceNames,
           customService: s.customService,
           quantities: s.quantities,
         })),
-        tools_summary: allToolsForReview,
+        tools_summary: isPackersCategory ? [] : allToolsForReview,
         schedule_type: scheduleType,
         schedule_date: scheduleType !== "instant" && scheduleDate ? scheduleDate : null,
         book_for: bookFor,
-        address: bookFor === "self" ? selfAddress : otherDetails.address,
+        address: isPackersCategory ? packersFrom : (bookFor === "self" ? selfAddress : otherDetails.address),
         recipient_name: bookFor === "other" ? otherDetails.name : null,
         recipient_phone: bookFor === "other" ? otherDetails.phone : null,
-        notes: notes || null,
+        notes: isPackersCategory ? `Moving: ${packersDescription}\nFrom: ${packersFrom}\nTo: ${packersTo}` : (notes || null),
         photos: photos,
         estimated_cost: estimatedCost,
         status: "pending",
@@ -414,8 +449,68 @@ const BookService = () => {
                 </div>
               )}
 
-              {/* Step 1: Services */}
-              {step === 1 && (
+              {/* Step 1: Packers & Movers */}
+              {step === 1 && isPackersCategory && (
+                <div className="space-y-6">
+                  <h2 className="font-display text-2xl font-bold text-foreground">Packers & Movers Details</h2>
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1 block">From Address <span className="text-destructive">*</span></label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                      <Input placeholder="Pickup address" className="pl-9" value={packersFrom} onChange={e => setPackersFrom(e.target.value)} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1 block">To Address <span className="text-destructive">*</span></label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                      <Input placeholder="Drop-off address" className="pl-9" value={packersTo} onChange={e => setPackersTo(e.target.value)} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1 block">What needs to be moved? <span className="text-destructive">*</span></label>
+                    <Textarea
+                      placeholder="Describe all items that need to be moved in detail..."
+                      value={packersDescription}
+                      onChange={e => setPackersDescription(e.target.value)}
+                      rows={3}
+                    />
+                    {!packersDescription.trim() && <p className="text-xs text-destructive mt-1">This field is required</p>}
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-2 block">Select Items & Quantities <span className="text-destructive">*</span></label>
+                    <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                      {PACKERS_ITEMS.map(item => (
+                        <div key={item} className="flex items-center justify-between p-3 rounded-lg border border-border">
+                          <span className="text-sm text-foreground">{item}</span>
+                          <Input
+                            type="number"
+                            min={0}
+                            className="w-20"
+                            placeholder="0"
+                            value={packersItems[item] || ""}
+                            onChange={e => setPackersItems(prev => ({ ...prev, [item]: parseInt(e.target.value) || 0 }))}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    {!Object.values(packersItems).some(v => v > 0) && (
+                      <p className="text-xs text-destructive mt-1">Select at least one item</p>
+                    )}
+                  </div>
+                  {estimatedCost > 0 && (
+                    <div className="bg-primary/5 rounded-xl p-4 border border-primary/20">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-foreground">Estimated Cost</span>
+                        <span className="text-lg font-bold text-gradient-warm">₹{estimatedCost.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Step 1: Services (non-packers) */}
+              {step === 1 && !isPackersCategory && (
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <h2 className="font-display text-2xl font-bold text-foreground">Select Services</h2>
@@ -755,24 +850,40 @@ const BookService = () => {
                     </button>
                     <h2 className="font-display text-2xl font-bold text-foreground">Review & Confirm</h2>
                   </div>
-                  <div className="space-y-3">
-                    {services.map((s) => {
-                      const cat = categories.find(c => c.id === s.categoryId);
-                      return (
-                        <div key={s.id} className="bg-muted/50 rounded-xl p-4">
-                          <div className="text-sm font-semibold text-foreground">{cat?.label}</div>
-                          <div className="text-sm text-muted-foreground mt-1">
-                            {s.serviceNames.map(n => isOtherService(n) ? s.customService : n).join(", ")}
+                  {isPackersCategory ? (
+                    <div className="bg-muted/50 rounded-xl p-4 space-y-2">
+                      <div className="text-sm font-semibold text-foreground">🚚 Packers & Movers</div>
+                      <div className="text-xs text-muted-foreground"><span className="font-medium text-foreground">From:</span> {packersFrom}</div>
+                      <div className="text-xs text-muted-foreground"><span className="font-medium text-foreground">To:</span> {packersTo}</div>
+                      <div className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Description:</span> {packersDescription}</div>
+                      <div className="mt-2 space-y-1">
+                        {Object.entries(packersItems).filter(([_, v]) => v > 0).map(([item, qty]) => (
+                          <div key={item} className="text-xs text-muted-foreground">
+                            {item}: <span className="font-medium text-foreground">×{qty}</span>
                           </div>
-                          {Object.entries(s.quantities).filter(([_, v]) => v > 0).map(([name, qty]) => (
-                            <div key={name} className="text-xs text-muted-foreground mt-1">
-                              {name}: <span className="font-medium text-foreground">{qty}</span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {services.map((s) => {
+                        const cat = categories.find(c => c.id === s.categoryId);
+                        return (
+                          <div key={s.id} className="bg-muted/50 rounded-xl p-4">
+                            <div className="text-sm font-semibold text-foreground">{cat?.label}</div>
+                            <div className="text-sm text-muted-foreground mt-1">
+                              {s.serviceNames.map(n => isOtherService(n) ? s.customService : n).join(", ")}
                             </div>
-                          ))}
-                        </div>
-                      );
-                    })}
-                  </div>
+                            {Object.entries(s.quantities).filter(([_, v]) => v > 0).map(([name, qty]) => (
+                              <div key={name} className="text-xs text-muted-foreground mt-1">
+                                {name}: <span className="font-medium text-foreground">{qty}</span>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
 
                   {allToolsForReview.length > 0 && (
                     <div>
@@ -837,10 +948,18 @@ const BookService = () => {
 
           {step < 5 && (
             <div className="flex justify-between mt-6">
-              <Button variant="ghost" onClick={() => setStep(s => s - 1)} disabled={step === 0}>
+              <Button variant="ghost" onClick={() => {
+                // Packers skips step 2 (no tools)
+                if (isPackersCategory && step === 3) setStep(1);
+                else setStep(s => s - 1);
+              }} disabled={step === 0}>
                 <ArrowLeft className="w-4 h-4 mr-1" /> Back
               </Button>
-              <Button variant="hero" onClick={() => setStep(s => s + 1)} disabled={!canProceed()}>
+              <Button variant="hero" onClick={() => {
+                // Packers skips step 2 (no tools)
+                if (isPackersCategory && step === 1) setStep(3);
+                else setStep(s => s + 1);
+              }} disabled={!canProceed()}>
                 Next <ArrowRight className="w-4 h-4 ml-1" />
               </Button>
             </div>

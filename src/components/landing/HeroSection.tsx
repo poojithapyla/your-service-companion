@@ -91,6 +91,8 @@ const HeroSection = () => {
             <span>💇 Beauty & Grooming</span>
             <div className="h-4 w-px bg-border" />
             <span>🎉 Décor</span>
+            <div className="h-4 w-px bg-border" />
+            <span>🚚 Packers & Movers</span>
           </motion.div>
         </div>
       </div>

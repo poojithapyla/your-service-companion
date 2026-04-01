@@ -89,19 +89,48 @@ const SERVICE_PRICES: Record<string, number> = {
   "Festival Décor": 1499,
   "Wedding Décor - Small": 7999,
 
-  // Other
-  "Custom Request": 349,
-  "Consultation": 149,
-  "Special Event Planning": 1499,
-  "Errand Service": 149,
-  "Pet Care": 299,
-  "Gardening": 249,
-  "Moving Help": 799,
-  "Grocery Shopping": 79,
-  "Document Delivery": 79,
+  // Packers & Movers — calculated per-item, these are base rates
+  "Packers & Movers": 0, // dynamic pricing based on items
+
 };
 
 const DEFAULT_PRICE = 299;
+
+// Packers & Movers per-item pricing
+const PACKERS_ITEM_PRICES: Record<string, number> = {
+  "Sofa (1-seater)": 500,
+  "Sofa (2-seater)": 800,
+  "Sofa (3-seater)": 1200,
+  "Bed (Single)": 600,
+  "Bed (Double)": 1000,
+  "Bed (King)": 1500,
+  "Wardrobe (Small)": 800,
+  "Wardrobe (Large)": 1500,
+  "Dining Table (4-seater)": 700,
+  "Dining Table (6-seater)": 1000,
+  "TV (up to 42\")": 400,
+  "TV (above 42\")": 700,
+  "Fridge": 800,
+  "Washing Machine": 700,
+  "AC (Split)": 900,
+  "AC (Window)": 600,
+  "Microwave": 300,
+  "Boxes (Small)": 100,
+  "Boxes (Medium)": 200,
+  "Boxes (Large)": 350,
+  "Two-Wheeler": 1500,
+  "Cycle": 500,
+  "Piano/Heavy Instrument": 2500,
+  "Other Item": 300,
+};
+
+export const PACKERS_ITEMS = Object.keys(PACKERS_ITEM_PRICES);
+
+export function getPackersEstimate(items: Record<string, number>): number {
+  return Object.entries(items).reduce((total, [item, qty]) => {
+    return total + (PACKERS_ITEM_PRICES[item] || 300) * qty;
+  }, 0);
+}
 
 /** Percentage discount when the customer has ALL tools */
 const ALL_TOOLS_DISCOUNT = 0.15;    // 15% off

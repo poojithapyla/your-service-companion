@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Calendar, CheckCircle2, XCircle, Clock, Star, MapPin, User,
-  Phone, LogOut, ArrowLeft, IndianRupee
+  Phone, LogOut, ArrowLeft, IndianRupee, Bell, BellOff
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -22,6 +22,27 @@ const PartnerDashboard = () => {
   const [bookings, setBookings] = useState<any[]>([]);
   const [filter, setFilter] = useState<string>("all");
   const [loading, setLoading] = useState(true);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+
+  useEffect(() => {
+    if ("Notification" in window) {
+      setNotificationsEnabled(Notification.permission === "granted");
+    }
+  }, []);
+
+  const requestNotifications = useCallback(async () => {
+    if (!("Notification" in window)) { toast.error("Notifications not supported"); return; }
+    const perm = await Notification.requestPermission();
+    setNotificationsEnabled(perm === "granted");
+    if (perm === "granted") toast.success("Notifications enabled!");
+    else toast.error("Notifications blocked");
+  }, []);
+
+  const showNotification = useCallback((title: string, body: string) => {
+    if (notificationsEnabled && "Notification" in window) {
+      new Notification(title, { body, icon: "/icon-192.png" });
+    }
+  }, [notificationsEnabled]);
 
   useEffect(() => {
     if (user) {
@@ -37,6 +58,8 @@ const PartnerDashboard = () => {
             if (matches) {
               setBookings(prev => [newBooking, ...prev]);
               toast.info("New booking available in your category!");
+              const svcNames = bookingServices.flatMap((s: any) => s.serviceNames || []).join(", ");
+              showNotification("New Booking!", `${svcNames} — ₹${newBooking.estimated_cost || 0}`);
             }
           } else if (payload.eventType === 'UPDATE') {
             setBookings(prev => prev.map(b => b.id === (payload.new as any).id ? payload.new as any : b));
@@ -106,6 +129,15 @@ const PartnerDashboard = () => {
             <span className="font-display text-lg font-bold text-foreground">Partner Dashboard</span>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={requestNotifications}
+              className={notificationsEnabled ? "text-accent" : "text-muted-foreground"}
+              title={notificationsEnabled ? "Notifications enabled" : "Enable notifications"}
+            >
+              {notificationsEnabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+            </Button>
             <span className="text-sm text-muted-foreground">{profile?.full_name}</span>
             <Button variant="ghost" size="sm" onClick={signOut}>
               <LogOut className="w-4 h-4 mr-1" /> Logout
