@@ -233,6 +233,10 @@ const BookService = () => {
   };
 
   const estimatedCost = useMemo(() => {
+    // Packers & Movers — use item-based pricing
+    if (isPackersCategory) {
+      return getPackersEstimate(packersItems);
+    }
     return calculateBookingEstimate(services.map(s => {
       const cat = categories.find(c => c.id === s.categoryId);
       const totalTools = cat ? s.serviceNames.reduce((sum, name) => {
@@ -247,7 +251,7 @@ const BookService = () => {
         totalTools,
       };
     }));
-  }, [services]);
+  }, [services, isPackersCategory, packersItems]);
 
   const allToolsForReview = services.flatMap(s => {
     const cat = categories.find(c => c.id === s.categoryId);
