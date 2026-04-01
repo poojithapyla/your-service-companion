@@ -57,6 +57,12 @@ const BookService = () => {
   const [submitting, setSubmitting] = useState(false);
   const [noPartnerWarning, setNoPartnerWarning] = useState(false);
 
+  // Packers & Movers state
+  const [packersItems, setPackersItems] = useState<Record<string, number>>({});
+  const [packersFrom, setPackersFrom] = useState("");
+  const [packersTo, setPackersTo] = useState("");
+  const [packersDescription, setPackersDescription] = useState("");
+
   useEffect(() => {
     const saved = localStorage.getItem(SAVED_ADDRESS_KEY);
     if (saved) setSelfAddress(saved);
