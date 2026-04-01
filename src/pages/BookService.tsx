@@ -932,10 +932,18 @@ const BookService = () => {
 
           {step < 5 && (
             <div className="flex justify-between mt-6">
-              <Button variant="ghost" onClick={() => setStep(s => s - 1)} disabled={step === 0}>
+              <Button variant="ghost" onClick={() => {
+                // Packers skips step 2 (no tools)
+                if (isPackersCategory && step === 3) setStep(1);
+                else setStep(s => s - 1);
+              }} disabled={step === 0}>
                 <ArrowLeft className="w-4 h-4 mr-1" /> Back
               </Button>
-              <Button variant="hero" onClick={() => setStep(s => s + 1)} disabled={!canProceed()}>
+              <Button variant="hero" onClick={() => {
+                // Packers skips step 2 (no tools)
+                if (isPackersCategory && step === 1) setStep(3);
+                else setStep(s => s + 1);
+              }} disabled={!canProceed()}>
                 Next <ArrowRight className="w-4 h-4 ml-1" />
               </Button>
             </div>
