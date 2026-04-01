@@ -58,6 +58,8 @@ const PartnerDashboard = () => {
             if (matches) {
               setBookings(prev => [newBooking, ...prev]);
               toast.info("New booking available in your category!");
+              const svcNames = bookingServices.flatMap((s: any) => s.serviceNames || []).join(", ");
+              showNotification("New Booking!", `${svcNames} — ₹${newBooking.estimated_cost || 0}`);
             }
           } else if (payload.eventType === 'UPDATE') {
             setBookings(prev => prev.map(b => b.id === (payload.new as any).id ? payload.new as any : b));
