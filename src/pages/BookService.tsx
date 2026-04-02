@@ -456,17 +456,11 @@ const BookService = () => {
                   <h2 className="font-display text-2xl font-bold text-foreground">Packers & Movers Details</h2>
                   <div>
                     <label className="text-sm font-medium text-foreground mb-1 block">From Address <span className="text-destructive">*</span></label>
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                      <Input placeholder="Pickup address" className="pl-9" value={packersFrom} onChange={e => setPackersFrom(e.target.value)} />
-                    </div>
+                    <AddressAutocomplete value={packersFrom} onChange={setPackersFrom} placeholder="Pickup address" />
                   </div>
                   <div>
                     <label className="text-sm font-medium text-foreground mb-1 block">To Address <span className="text-destructive">*</span></label>
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                      <Input placeholder="Drop-off address" className="pl-9" value={packersTo} onChange={e => setPackersTo(e.target.value)} />
-                    </div>
+                    <AddressAutocomplete value={packersTo} onChange={setPackersTo} placeholder="Drop-off address" />
                   </div>
                   <div>
                     <label className="text-sm font-medium text-foreground mb-1 block">What needs to be moved? <span className="text-destructive">*</span></label>
