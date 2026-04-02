@@ -796,10 +796,7 @@ const BookService = () => {
                     <div className="space-y-3">
                       <Input placeholder="Full Name *" value={otherDetails.name} onChange={e => setOtherDetails(p => ({ ...p, name: e.target.value }))} />
                       <Input placeholder="Phone Number *" value={otherDetails.phone} onChange={e => setOtherDetails(p => ({ ...p, phone: e.target.value }))} />
-                      <div className="relative">
-                        <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                        <Input placeholder="Address *" className="pl-9" value={otherDetails.address} onChange={e => setOtherDetails(p => ({ ...p, address: e.target.value }))} />
-                      </div>
+                      <AddressAutocomplete value={otherDetails.address} onChange={v => setOtherDetails(p => ({ ...p, address: v }))} placeholder="Address *" />
                     </div>
                   )}
                   {bookFor === "self" && (
