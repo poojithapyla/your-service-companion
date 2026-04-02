@@ -107,7 +107,7 @@
     --secondary: 35 90% 50%;
     --secondary-foreground: 0 0% 100%;
     --muted: 28 25% 88%;
-    --muted-foreground: 20 15% 40%;
+    --muted-foreground: 20 15% 35%;
     --accent: 160 40% 40%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 72% 50%;
@@ -115,6 +115,14 @@
     --border: 28 20% 82%;
     --input: 28 20% 82%;
     --ring: 16 85% 52%;
+
+    --gradient-warm: linear-gradient(135deg, hsl(16, 85%, 52%), hsl(35, 90%, 50%));
+    --gradient-hero: linear-gradient(160deg, hsl(28, 35%, 95%) 0%, hsl(28, 40%, 90%) 50%, hsl(16, 30%, 88%) 100%);
+    --gradient-card-hover: linear-gradient(145deg, hsl(30, 30%, 98%), hsl(28, 25%, 94%));
+    --shadow-soft: 0 2px 15px -3px hsl(16 85% 52% / 0.12), 0 4px 6px -4px hsl(16 85% 52% / 0.06);
+    --shadow-elevated: 0 10px 40px -10px hsl(20 20% 15% / 0.15), 0 4px 16px -4px hsl(20 20% 15% / 0.08);
+    --shadow-glow: 0 0 30px -5px hsl(16 85% 52% / 0.25);
+
     --sidebar-background: 28 35% 95%;
     --sidebar-foreground: 20 20% 15%;
     --sidebar-primary: 16 85% 52%;
