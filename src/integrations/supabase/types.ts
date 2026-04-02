@@ -98,6 +98,8 @@ export type Database = {
           created_at: string
           full_name: string | null
           id: string
+          latitude: number | null
+          longitude: number | null
           partner_categories: string[] | null
           phone: string | null
           preferred_language: string | null
@@ -110,6 +112,8 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id: string
+          latitude?: number | null
+          longitude?: number | null
           partner_categories?: string[] | null
           phone?: string | null
           preferred_language?: string | null
@@ -122,6 +126,8 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           partner_categories?: string[] | null
           phone?: string | null
           preferred_language?: string | null
