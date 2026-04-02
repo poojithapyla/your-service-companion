@@ -826,10 +826,7 @@ const BookService = () => {
                       >
                         {locatingGPS ? <><Loader2 className="w-4 h-4 animate-spin" /> Getting location...</> : <><Navigation className="w-4 h-4" /> Use Current Location</>}
                       </button>
-                      <div className="relative">
-                        <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                        <Input placeholder="Or enter your address manually *" className="pl-9" value={selfAddress} onChange={e => updateSelfAddress(e.target.value)} />
-                      </div>
+                      <AddressAutocomplete value={selfAddress} onChange={updateSelfAddress} placeholder="Or enter your address manually *" />
                       {selfAddress && <p className="text-xs text-muted-foreground">📍 Address saved for future bookings</p>}
                     </div>
                   )}
