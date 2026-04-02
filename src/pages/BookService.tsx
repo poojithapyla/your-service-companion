@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, ArrowRight, Check, Upload, Plus, Trash2, MapPin, Clock, Zap, Calendar, Search, CheckCircle2, AlertCircle, Navigation, Loader2 } from "lucide-react";
+import AddressAutocomplete from "@/components/AddressAutocomplete";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { categories, PHOTO_REQUIRED_SERVICES, QUANTITY_SERVICES, type CategoryDefinition, type ServiceDefinition } from "@/data/services";
 import { getToolEmoji } from "@/data/toolIcons";
@@ -455,17 +456,11 @@ const BookService = () => {
                   <h2 className="font-display text-2xl font-bold text-foreground">Packers & Movers Details</h2>
                   <div>
                     <label className="text-sm font-medium text-foreground mb-1 block">From Address <span className="text-destructive">*</span></label>
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                      <Input placeholder="Pickup address" className="pl-9" value={packersFrom} onChange={e => setPackersFrom(e.target.value)} />
-                    </div>
+                    <AddressAutocomplete value={packersFrom} onChange={setPackersFrom} placeholder="Pickup address" />
                   </div>
                   <div>
                     <label className="text-sm font-medium text-foreground mb-1 block">To Address <span className="text-destructive">*</span></label>
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                      <Input placeholder="Drop-off address" className="pl-9" value={packersTo} onChange={e => setPackersTo(e.target.value)} />
-                    </div>
+                    <AddressAutocomplete value={packersTo} onChange={setPackersTo} placeholder="Drop-off address" />
                   </div>
                   <div>
                     <label className="text-sm font-medium text-foreground mb-1 block">What needs to be moved? <span className="text-destructive">*</span></label>
@@ -801,10 +796,7 @@ const BookService = () => {
                     <div className="space-y-3">
                       <Input placeholder="Full Name *" value={otherDetails.name} onChange={e => setOtherDetails(p => ({ ...p, name: e.target.value }))} />
                       <Input placeholder="Phone Number *" value={otherDetails.phone} onChange={e => setOtherDetails(p => ({ ...p, phone: e.target.value }))} />
-                      <div className="relative">
-                        <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                        <Input placeholder="Address *" className="pl-9" value={otherDetails.address} onChange={e => setOtherDetails(p => ({ ...p, address: e.target.value }))} />
-                      </div>
+                      <AddressAutocomplete value={otherDetails.address} onChange={v => setOtherDetails(p => ({ ...p, address: v }))} placeholder="Address *" />
                     </div>
                   )}
                   {bookFor === "self" && (
@@ -831,10 +823,7 @@ const BookService = () => {
                       >
                         {locatingGPS ? <><Loader2 className="w-4 h-4 animate-spin" /> Getting location...</> : <><Navigation className="w-4 h-4" /> Use Current Location</>}
                       </button>
-                      <div className="relative">
-                        <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                        <Input placeholder="Or enter your address manually *" className="pl-9" value={selfAddress} onChange={e => updateSelfAddress(e.target.value)} />
-                      </div>
+                      <AddressAutocomplete value={selfAddress} onChange={updateSelfAddress} placeholder="Or enter your address manually *" />
                       {selfAddress && <p className="text-xs text-muted-foreground">📍 Address saved for future bookings</p>}
                     </div>
                   )}
