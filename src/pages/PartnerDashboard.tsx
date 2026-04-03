@@ -268,7 +268,7 @@ const PartnerDashboard = () => {
                     )}
                     {booking.status === "accepted" && isMyJob && (
                       <Button size="sm" variant="hero" className="flex-1" onClick={() => handleAction(booking.id, "in_progress")}>
-                        Start Service
+                        {t("partner.startService")}
                       </Button>
                     )}
                     {booking.status === "in_progress" && isMyJob && (
