@@ -259,7 +259,7 @@ const PartnerDashboard = () => {
                     {booking.status === "pending" && !booking.assigned_partner_id && (
                       <>
                         <Button size="sm" variant="hero" className="flex-1" onClick={() => handleAction(booking.id, "accepted")}>
-                          <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Accept
+                          <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> {t("partner.accept")}
                         </Button>
                         <Button size="sm" variant="outline" className="flex-1 text-destructive border-destructive/30" onClick={() => handleAction(booking.id, "rejected")}>
                           <XCircle className="w-3.5 h-3.5 mr-1" /> Reject
