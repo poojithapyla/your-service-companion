@@ -169,7 +169,7 @@ const PartnerDashboard = () => {
           <div className="bg-card rounded-xl border border-border p-4 text-center">
             <CheckCircle2 className="w-5 h-5 text-blue-600 mx-auto mb-1" />
             <div className="text-2xl font-bold text-foreground">{myAccepted.length}</div>
-            <div className="text-xs text-muted-foreground">My Jobs</div>
+            <div className="text-xs text-muted-foreground">{t("partner.myJobs")}</div>
           </div>
           <div className="bg-card rounded-xl border border-border p-4 text-center">
             <Clock className="w-5 h-5 text-accent mx-auto mb-1" />
