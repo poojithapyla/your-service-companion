@@ -20,6 +20,7 @@ const Auth = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user, userRole } = useAuth();
+  const { t } = useLanguage();
   const [isSignup, setIsSignup] = useState(searchParams.get("mode") === "signup");
   const [authMethod, setAuthMethod] = useState<"email" | "phone">("email");
   const [showPassword, setShowPassword] = useState(false);
