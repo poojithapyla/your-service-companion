@@ -285,7 +285,7 @@ const PartnerDashboard = () => {
             })}
             {filtered.length === 0 && (
               <div className="text-center py-12 text-muted-foreground text-sm">
-                No bookings found
+                {t("partner.noBookings")}
               </div>
             )}
           </div>
