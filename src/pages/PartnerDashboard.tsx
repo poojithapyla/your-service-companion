@@ -179,7 +179,7 @@ const PartnerDashboard = () => {
           <div className="bg-card rounded-xl border border-border p-4 text-center">
             <IndianRupee className="w-5 h-5 text-secondary mx-auto mb-1" />
             <div className="text-2xl font-bold text-foreground">₹{earnings.toLocaleString()}</div>
-            <div className="text-xs text-muted-foreground">Earnings</div>
+            <div className="text-xs text-muted-foreground">{t("partner.earnings")}</div>
           </div>
         </div>
 
