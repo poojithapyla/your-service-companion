@@ -142,7 +142,7 @@ const PartnerDashboard = () => {
             </Button>
             <span className="text-sm text-muted-foreground">{profile?.full_name}</span>
             <Button variant="ghost" size="sm" onClick={signOut}>
-              <LogOut className="w-4 h-4 mr-1" /> Logout
+              <LogOut className="w-4 h-4 mr-1" /> {t("common.logout")}
             </Button>
           </div>
         </div>
