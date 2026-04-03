@@ -98,6 +98,7 @@ export type Database = {
           created_at: string
           full_name: string | null
           id: string
+          is_active: boolean | null
           latitude: number | null
           longitude: number | null
           partner_categories: string[] | null
@@ -105,6 +106,7 @@ export type Database = {
           preferred_language: string | null
           preferred_theme: string | null
           saved_address: string | null
+          spoken_languages: string[] | null
           updated_at: string
         }
         Insert: {
@@ -112,6 +114,7 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id: string
+          is_active?: boolean | null
           latitude?: number | null
           longitude?: number | null
           partner_categories?: string[] | null
@@ -119,6 +122,7 @@ export type Database = {
           preferred_language?: string | null
           preferred_theme?: string | null
           saved_address?: string | null
+          spoken_languages?: string[] | null
           updated_at?: string
         }
         Update: {
@@ -126,6 +130,7 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          is_active?: boolean | null
           latitude?: number | null
           longitude?: number | null
           partner_categories?: string[] | null
@@ -133,6 +138,7 @@ export type Database = {
           preferred_language?: string | null
           preferred_theme?: string | null
           saved_address?: string | null
+          spoken_languages?: string[] | null
           updated_at?: string
         }
         Relationships: []
