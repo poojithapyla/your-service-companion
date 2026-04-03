@@ -308,7 +308,7 @@ const Auth = () => {
           <div className="mt-6">
             <div className="relative mb-4">
               <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
-              <div className="relative flex justify-center"><span className="bg-card px-3 text-xs text-muted-foreground">or continue with</span></div>
+              <div className="relative flex justify-center"><span className="bg-card px-3 text-xs text-muted-foreground">{t("auth.or")}</span></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <Button variant="outline" className="w-full" type="button" onClick={() => handleSocialLogin("google")}>Google</Button>
