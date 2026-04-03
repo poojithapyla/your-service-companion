@@ -174,7 +174,7 @@ const PartnerDashboard = () => {
           <div className="bg-card rounded-xl border border-border p-4 text-center">
             <Clock className="w-5 h-5 text-accent mx-auto mb-1" />
             <div className="text-2xl font-bold text-foreground">{bookings.filter(b => b.status === "completed" && b.assigned_partner_id === user?.id).length}</div>
-            <div className="text-xs text-muted-foreground">Completed</div>
+            <div className="text-xs text-muted-foreground">{t("partner.completed")}</div>
           </div>
           <div className="bg-card rounded-xl border border-border p-4 text-center">
             <IndianRupee className="w-5 h-5 text-secondary mx-auto mb-1" />
