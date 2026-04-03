@@ -8,6 +8,7 @@ import { categories } from "@/data/services";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "sonner";
 
 const roles = [
@@ -19,6 +20,7 @@ const Auth = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user, userRole } = useAuth();
+  const { t } = useLanguage();
   const [isSignup, setIsSignup] = useState(searchParams.get("mode") === "signup");
   const [authMethod, setAuthMethod] = useState<"email" | "phone">("email");
   const [showPassword, setShowPassword] = useState(false);
@@ -152,7 +154,7 @@ const Auth = () => {
           </div>
 
           <h1 className="font-display text-2xl font-bold text-foreground mb-1">
-            {isSignup ? "Create Account" : "Welcome Back"}
+            {isSignup ? t("auth.createAccount") : t("auth.welcomeBack")}
           </h1>
           <p className="text-sm text-muted-foreground mb-6">
             {isSignup ? "Join ServiBook to get started" : "Log in to your account"}
@@ -289,7 +291,7 @@ const Auth = () => {
             )}
 
             <Button variant="hero" className="w-full py-5" type="submit" disabled={isLoading}>
-              {isLoading ? "Please wait..." : isSignup ? "Create Account" : "Log In"}
+              {isLoading ? t("common.loading") : isSignup ? t("auth.createAccount") : t("auth.login")}
             </Button>
           </form>
 
@@ -297,7 +299,7 @@ const Auth = () => {
           {!isSignup && (
             <div className="mt-3 text-center">
               <Link to="/reset-password" className="text-sm text-primary hover:underline">
-                Forgot password?
+                {t("auth.forgotPassword")}
               </Link>
             </div>
           )}
@@ -306,7 +308,7 @@ const Auth = () => {
           <div className="mt-6">
             <div className="relative mb-4">
               <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
-              <div className="relative flex justify-center"><span className="bg-card px-3 text-xs text-muted-foreground">or continue with</span></div>
+              <div className="relative flex justify-center"><span className="bg-card px-3 text-xs text-muted-foreground">{t("auth.or")}</span></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <Button variant="outline" className="w-full" type="button" onClick={() => handleSocialLogin("google")}>Google</Button>
@@ -315,9 +317,9 @@ const Auth = () => {
           </div>
 
           <p className="text-center text-sm text-muted-foreground mt-6">
-            {isSignup ? "Already have an account?" : "Don't have an account?"}{" "}
+            {isSignup ? t("auth.alreadyHave") : t("auth.dontHave")}{" "}
             <button onClick={() => setIsSignup(!isSignup)} className="text-primary font-medium hover:underline">
-              {isSignup ? "Log in" : "Sign up"}
+              {isSignup ? t("auth.login") : t("auth.signup")}
             </button>
           </p>
         </div>

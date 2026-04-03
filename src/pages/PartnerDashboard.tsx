@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -19,6 +20,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: any }> 
 
 const PartnerDashboard = () => {
   const { user, profile, signOut } = useAuth();
+  const { t } = useLanguage();
   const [bookings, setBookings] = useState<any[]>([]);
   const [filter, setFilter] = useState<string>("all");
   const [loading, setLoading] = useState(true);
@@ -126,7 +128,7 @@ const PartnerDashboard = () => {
         <div className="container mx-auto flex items-center justify-between h-16 px-4">
           <div className="flex items-center gap-3">
             <Link to="/" className="text-muted-foreground hover:text-foreground"><ArrowLeft className="w-5 h-5" /></Link>
-            <span className="font-display text-lg font-bold text-foreground">Partner Dashboard</span>
+            <span className="font-display text-lg font-bold text-foreground">{t("partner.dashboard")}</span>
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -140,7 +142,7 @@ const PartnerDashboard = () => {
             </Button>
             <span className="text-sm text-muted-foreground">{profile?.full_name}</span>
             <Button variant="ghost" size="sm" onClick={signOut}>
-              <LogOut className="w-4 h-4 mr-1" /> Logout
+              <LogOut className="w-4 h-4 mr-1" /> {t("common.logout")}
             </Button>
           </div>
         </div>
@@ -162,22 +164,22 @@ const PartnerDashboard = () => {
           <div className="bg-card rounded-xl border border-border p-4 text-center">
             <Calendar className="w-5 h-5 text-primary mx-auto mb-1" />
             <div className="text-2xl font-bold text-foreground">{bookings.filter(b => b.status === "pending").length}</div>
-            <div className="text-xs text-muted-foreground">Available</div>
+            <div className="text-xs text-muted-foreground">{t("partner.available")}</div>
           </div>
           <div className="bg-card rounded-xl border border-border p-4 text-center">
             <CheckCircle2 className="w-5 h-5 text-blue-600 mx-auto mb-1" />
             <div className="text-2xl font-bold text-foreground">{myAccepted.length}</div>
-            <div className="text-xs text-muted-foreground">My Jobs</div>
+            <div className="text-xs text-muted-foreground">{t("partner.myJobs")}</div>
           </div>
           <div className="bg-card rounded-xl border border-border p-4 text-center">
             <Clock className="w-5 h-5 text-accent mx-auto mb-1" />
             <div className="text-2xl font-bold text-foreground">{bookings.filter(b => b.status === "completed" && b.assigned_partner_id === user?.id).length}</div>
-            <div className="text-xs text-muted-foreground">Completed</div>
+            <div className="text-xs text-muted-foreground">{t("partner.completed")}</div>
           </div>
           <div className="bg-card rounded-xl border border-border p-4 text-center">
             <IndianRupee className="w-5 h-5 text-secondary mx-auto mb-1" />
             <div className="text-2xl font-bold text-foreground">₹{earnings.toLocaleString()}</div>
-            <div className="text-xs text-muted-foreground">Earnings</div>
+            <div className="text-xs text-muted-foreground">{t("partner.earnings")}</div>
           </div>
         </div>
 
@@ -257,21 +259,21 @@ const PartnerDashboard = () => {
                     {booking.status === "pending" && !booking.assigned_partner_id && (
                       <>
                         <Button size="sm" variant="hero" className="flex-1" onClick={() => handleAction(booking.id, "accepted")}>
-                          <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Accept
+                          <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> {t("partner.accept")}
                         </Button>
                         <Button size="sm" variant="outline" className="flex-1 text-destructive border-destructive/30" onClick={() => handleAction(booking.id, "rejected")}>
-                          <XCircle className="w-3.5 h-3.5 mr-1" /> Reject
+                          <XCircle className="w-3.5 h-3.5 mr-1" /> {t("partner.reject")}
                         </Button>
                       </>
                     )}
                     {booking.status === "accepted" && isMyJob && (
                       <Button size="sm" variant="hero" className="flex-1" onClick={() => handleAction(booking.id, "in_progress")}>
-                        Start Service
+                        {t("partner.startService")}
                       </Button>
                     )}
                     {booking.status === "in_progress" && isMyJob && (
                       <Button size="sm" variant="hero" className="flex-1" onClick={() => handleAction(booking.id, "completed")}>
-                        Mark Completed
+                        {t("partner.markCompleted")}
                       </Button>
                     )}
                     {booking.status === "accepted" && !isMyJob && (
@@ -283,7 +285,7 @@ const PartnerDashboard = () => {
             })}
             {filtered.length === 0 && (
               <div className="text-center py-12 text-muted-foreground text-sm">
-                No bookings found
+                {t("partner.noBookings")}
               </div>
             )}
           </div>
