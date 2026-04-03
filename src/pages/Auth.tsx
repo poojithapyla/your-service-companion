@@ -317,9 +317,9 @@ const Auth = () => {
           </div>
 
           <p className="text-center text-sm text-muted-foreground mt-6">
-            {isSignup ? "Already have an account?" : "Don't have an account?"}{" "}
+            {isSignup ? t("auth.alreadyHave") : t("auth.dontHave")}{" "}
             <button onClick={() => setIsSignup(!isSignup)} className="text-primary font-medium hover:underline">
-              {isSignup ? "Log in" : "Sign up"}
+              {isSignup ? t("auth.login") : t("auth.signup")}
             </button>
           </p>
         </div>
