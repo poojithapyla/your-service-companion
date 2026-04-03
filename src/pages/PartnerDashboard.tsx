@@ -273,7 +273,7 @@ const PartnerDashboard = () => {
                     )}
                     {booking.status === "in_progress" && isMyJob && (
                       <Button size="sm" variant="hero" className="flex-1" onClick={() => handleAction(booking.id, "completed")}>
-                        Mark Completed
+                        {t("partner.markCompleted")}
                       </Button>
                     )}
                     {booking.status === "accepted" && !isMyJob && (
