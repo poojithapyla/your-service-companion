@@ -262,7 +262,7 @@ const PartnerDashboard = () => {
                           <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> {t("partner.accept")}
                         </Button>
                         <Button size="sm" variant="outline" className="flex-1 text-destructive border-destructive/30" onClick={() => handleAction(booking.id, "rejected")}>
-                          <XCircle className="w-3.5 h-3.5 mr-1" /> Reject
+                          <XCircle className="w-3.5 h-3.5 mr-1" /> {t("partner.reject")}
                         </Button>
                       </>
                     )}
