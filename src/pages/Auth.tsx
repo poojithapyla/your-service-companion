@@ -291,7 +291,7 @@ const Auth = () => {
             )}
 
             <Button variant="hero" className="w-full py-5" type="submit" disabled={isLoading}>
-              {isLoading ? "Please wait..." : isSignup ? "Create Account" : "Log In"}
+              {isLoading ? t("common.loading") : isSignup ? t("auth.createAccount") : t("auth.login")}
             </Button>
           </form>
 
