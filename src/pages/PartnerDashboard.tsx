@@ -20,6 +20,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: any }> 
 
 const PartnerDashboard = () => {
   const { user, profile, signOut } = useAuth();
+  const { t } = useLanguage();
   const [bookings, setBookings] = useState<any[]>([]);
   const [filter, setFilter] = useState<string>("all");
   const [loading, setLoading] = useState(true);
