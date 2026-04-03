@@ -154,7 +154,7 @@ const Auth = () => {
           </div>
 
           <h1 className="font-display text-2xl font-bold text-foreground mb-1">
-            {isSignup ? "Create Account" : "Welcome Back"}
+            {isSignup ? t("auth.createAccount") : t("auth.welcomeBack")}
           </h1>
           <p className="text-sm text-muted-foreground mb-6">
             {isSignup ? "Join ServiBook to get started" : "Log in to your account"}
