@@ -164,7 +164,7 @@ const PartnerDashboard = () => {
           <div className="bg-card rounded-xl border border-border p-4 text-center">
             <Calendar className="w-5 h-5 text-primary mx-auto mb-1" />
             <div className="text-2xl font-bold text-foreground">{bookings.filter(b => b.status === "pending").length}</div>
-            <div className="text-xs text-muted-foreground">Available</div>
+            <div className="text-xs text-muted-foreground">{t("partner.available")}</div>
           </div>
           <div className="bg-card rounded-xl border border-border p-4 text-center">
             <CheckCircle2 className="w-5 h-5 text-blue-600 mx-auto mb-1" />
