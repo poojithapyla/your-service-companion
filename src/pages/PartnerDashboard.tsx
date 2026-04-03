@@ -128,7 +128,7 @@ const PartnerDashboard = () => {
         <div className="container mx-auto flex items-center justify-between h-16 px-4">
           <div className="flex items-center gap-3">
             <Link to="/" className="text-muted-foreground hover:text-foreground"><ArrowLeft className="w-5 h-5" /></Link>
-            <span className="font-display text-lg font-bold text-foreground">Partner Dashboard</span>
+            <span className="font-display text-lg font-bold text-foreground">{t("partner.dashboard")}</span>
           </div>
           <div className="flex items-center gap-2">
             <Button
