@@ -299,7 +299,7 @@ const Auth = () => {
           {!isSignup && (
             <div className="mt-3 text-center">
               <Link to="/reset-password" className="text-sm text-primary hover:underline">
-                Forgot password?
+                {t("auth.forgotPassword")}
               </Link>
             </div>
           )}
