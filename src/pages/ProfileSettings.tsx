@@ -13,7 +13,7 @@ import { categories } from "@/data/services";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 
 const ProfileSettings = () => {
-  const { user, profile, userRole, signOut } = useAuth();
+  const { user, profile, userRole, signOut, refreshProfile } = useAuth();
   const { lang, setLang, t } = useLanguage();
   const { theme, setTheme } = useTheme();
   const [fullName, setFullName] = useState("");
