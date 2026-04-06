@@ -25,26 +25,26 @@ const Footer = () => {
           <div>
             <h4 className="font-semibold text-background mb-4 text-sm tracking-wide uppercase">{t("services")}</h4>
             <ul className="space-y-2.5 text-sm">
-              <li><Link to="/book" className="hover:text-background transition-colors">Home Services</Link></li>
-              <li><Link to="/book" className="hover:text-background transition-colors">Repairs & Installations</Link></li>
-              <li><Link to="/book" className="hover:text-background transition-colors">Beauty & Grooming</Link></li>
-              <li><Link to="/book" className="hover:text-background transition-colors">Décor Services</Link></li>
-              <li><Link to="/book" className="hover:text-background transition-colors">Packers & Movers</Link></li>
+              <li><Link to="/book" className="hover:text-background transition-colors">{t("footer.homeServices")}</Link></li>
+              <li><Link to="/book" className="hover:text-background transition-colors">{t("footer.repairs")}</Link></li>
+              <li><Link to="/book" className="hover:text-background transition-colors">{t("footer.beauty")}</Link></li>
+              <li><Link to="/book" className="hover:text-background transition-colors">{t("footer.decor")}</Link></li>
+              <li><Link to="/book" className="hover:text-background transition-colors">{t("footer.packers")}</Link></li>
             </ul>
           </div>
           <div>
-            <h4 className="font-semibold text-background mb-4 text-sm tracking-wide uppercase">Company</h4>
+            <h4 className="font-semibold text-background mb-4 text-sm tracking-wide uppercase">{t("footer.company")}</h4>
             <ul className="space-y-2.5 text-sm">
-              <li><a href="#" className="hover:text-background transition-colors">About Us</a></li>
-              <li><a href="#" className="hover:text-background transition-colors">Careers</a></li>
-              <li><a href="#" className="hover:text-background transition-colors">Contact</a></li>
+              <li><a href="#" className="hover:text-background transition-colors">{t("footer.about")}</a></li>
+              <li><a href="#" className="hover:text-background transition-colors">{t("footer.careers")}</a></li>
+              <li><a href="#" className="hover:text-background transition-colors">{t("footer.contact")}</a></li>
             </ul>
           </div>
           <div>
-            <h4 className="font-semibold text-background mb-4 text-sm tracking-wide uppercase">Legal</h4>
+            <h4 className="font-semibold text-background mb-4 text-sm tracking-wide uppercase">{t("footer.legal")}</h4>
             <ul className="space-y-2.5 text-sm">
-              <li><a href="#" className="hover:text-background transition-colors">Privacy</a></li>
-              <li><a href="#" className="hover:text-background transition-colors">Terms</a></li>
+              <li><a href="#" className="hover:text-background transition-colors">{t("footer.privacy")}</a></li>
+              <li><a href="#" className="hover:text-background transition-colors">{t("footer.terms")}</a></li>
             </ul>
           </div>
         </div>
