@@ -12,6 +12,7 @@ interface AuthContextType {
   userRole: UserRole;
   profile: any;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
