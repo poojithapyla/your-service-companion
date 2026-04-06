@@ -13,7 +13,7 @@ import { categories } from "@/data/services";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 
 const ProfileSettings = () => {
-  const { user, profile, userRole, signOut } = useAuth();
+  const { user, profile, userRole, signOut, refreshProfile } = useAuth();
   const { lang, setLang, t } = useLanguage();
   const { theme, setTheme } = useTheme();
   const [fullName, setFullName] = useState("");
@@ -66,7 +66,10 @@ const ProfileSettings = () => {
     }
     const { error } = await supabase.from("profiles").update(updates).eq("id", user.id);
     if (error) toast.error("Failed to save");
-    else toast.success(t("profile.save") + " ✓");
+    else {
+      toast.success(t("profile.save") + " ✓");
+      await refreshProfile();
+    }
     setSaving(false);
   };
 
@@ -126,16 +129,19 @@ const ProfileSettings = () => {
                 {isActive ? <ToggleRight className="w-5 h-5 text-accent" /> : <ToggleLeft className="w-5 h-5 text-muted-foreground" />}
                 {t("profile.active")}
               </h3>
-              <button
+              <div
                 onClick={() => setIsActive(!isActive)}
-                className={`w-full py-3 rounded-xl border text-sm font-medium transition-all ${
+                className={`w-full flex items-center gap-3 py-3 px-4 rounded-xl border text-sm font-medium transition-all cursor-pointer ${
                   isActive
                     ? "border-accent bg-accent/10 text-accent"
                     : "border-border bg-muted/50 text-muted-foreground"
                 }`}
               >
-                {isActive ? t("profile.active") : t("profile.inactive")}
-              </button>
+                <div className={`relative w-12 h-6 rounded-full transition-colors ${isActive ? "bg-accent" : "bg-muted-foreground/30"}`}>
+                  <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-background shadow transition-transform ${isActive ? "translate-x-6" : "translate-x-0.5"}`} />
+                </div>
+                <span>{isActive ? t("profile.active") : t("profile.inactive")}</span>
+              </div>
             </div>
 
             {/* Service categories */}
