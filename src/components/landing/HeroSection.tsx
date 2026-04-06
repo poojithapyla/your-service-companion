@@ -4,7 +4,7 @@ import { ArrowRight, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
-import ServiceSearch from "./ServiceSearch";
+
 
 const categoryChips = [
   { emoji: "✨", label: "Home Services" },
