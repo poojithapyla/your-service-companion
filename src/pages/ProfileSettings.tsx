@@ -66,7 +66,10 @@ const ProfileSettings = () => {
     }
     const { error } = await supabase.from("profiles").update(updates).eq("id", user.id);
     if (error) toast.error("Failed to save");
-    else toast.success(t("profile.save") + " ✓");
+    else {
+      toast.success(t("profile.save") + " ✓");
+      await refreshProfile();
+    }
     setSaving(false);
   };
 
