@@ -419,50 +419,101 @@ const BookService = () => {
                       />
                     </div>
                   </div>
-                  {services.length > 1 && (
-                    <div className="flex gap-2 overflow-x-auto pb-2">
-                      {services.map((s, i) => (
-                        <button
-                          key={s.id}
-                          onClick={() => { setActiveServiceIdx(i); setServiceSearch(""); }}
-                          className={`shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-full text-sm border transition-colors ${
-                            i === activeServiceIdx ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"
-                          }`}
-                        >
-                          Group {i + 1}
-                          {services.length > 1 && (
-                            <Trash2 className="w-3 h-3 hover:text-destructive" onClick={(e) => { e.stopPropagation(); removeServiceGroup(i); }} />
-                          )}
-                        </button>
-                      ))}
-                    </div>
+
+                  {/* Service-level search results */}
+                  {serviceSearch.trim() && (() => {
+                    const q = serviceSearch.toLowerCase();
+                    const matchedServices = categories.flatMap(cat =>
+                      cat.services
+                        .filter(s => s.name.toLowerCase().includes(q))
+                        .map(s => ({ service: s, category: cat }))
+                    );
+                    if (matchedServices.length > 0) {
+                      return (
+                        <div className="bg-muted/30 border border-border rounded-xl overflow-hidden">
+                          <p className="text-xs text-muted-foreground px-4 pt-3 pb-1">
+                            {matchedServices.length} service{matchedServices.length > 1 ? "s" : ""} found
+                          </p>
+                          {matchedServices.slice(0, 10).map(({ service, category }) => (
+                            <button
+                              key={`${category.id}-${service.name}`}
+                              onClick={() => {
+                                updateService("categoryId", category.id);
+                                updateService("serviceNames", [service.name]);
+                                updateService("customService", "");
+                                updateService("toolsWithUser", []);
+                                updateService("noneOfAboveTools", false);
+                                updateService("quantities", {});
+                                setServiceSearch("");
+                                setStep(1);
+                              }}
+                              className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/50 transition-colors border-t border-border/30 first:border-t-0"
+                            >
+                              <div className={`w-8 h-8 rounded-lg ${category.color} flex items-center justify-center shrink-0`}>
+                                <category.icon className="w-4 h-4" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium text-foreground">{service.name}</div>
+                                <div className="text-xs text-muted-foreground">{category.label}</div>
+                              </div>
+                              <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    }
+                    return (
+                      <div className="text-center py-4 text-sm text-muted-foreground bg-muted/30 rounded-xl border border-border">
+                        No services found for "{serviceSearch}"
+                      </div>
+                    );
+                  })()}
+
+                  {/* Category list (hidden when search has results) */}
+                  {!serviceSearch.trim() && (
+                    <>
+                      {services.length > 1 && (
+                        <div className="flex gap-2 overflow-x-auto pb-2">
+                          {services.map((s, i) => (
+                            <button
+                              key={s.id}
+                              onClick={() => { setActiveServiceIdx(i); setServiceSearch(""); }}
+                              className={`shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-full text-sm border transition-colors ${
+                                i === activeServiceIdx ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"
+                              }`}
+                            >
+                              Group {i + 1}
+                              {services.length > 1 && (
+                                <Trash2 className="w-3 h-3 hover:text-destructive" onClick={(e) => { e.stopPropagation(); removeServiceGroup(i); }} />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      <div className="space-y-3">
+                        {categories.map(cat => (
+                          <button
+                            key={cat.id}
+                            onClick={() => selectCategory(cat.id)}
+                            className={`w-full flex items-center gap-4 p-4 rounded-xl border text-left transition-all ${
+                              activeService?.categoryId === cat.id
+                                ? "border-primary bg-primary/10 shadow-soft"
+                                : "border-border hover:border-primary/30"
+                            }`}
+                          >
+                            <div className={`w-12 h-12 rounded-xl ${cat.color} flex items-center justify-center shrink-0`}>
+                              <cat.icon className="w-6 h-6" />
+                            </div>
+                            <div>
+                              <div className="text-sm font-semibold text-foreground">{cat.label}</div>
+                              <div className="text-xs text-muted-foreground mt-0.5">{cat.description}</div>
+                            </div>
+                            {activeService?.categoryId === cat.id && <CheckCircle2 className="w-5 h-5 text-primary ml-auto shrink-0" />}
+                          </button>
+                        ))}
+                      </div>
+                    </>
                   )}
-                  <div className="space-y-3">
-                    {categories.filter(cat => {
-                      if (!serviceSearch.trim()) return true;
-                      const q = serviceSearch.toLowerCase();
-                      return cat.label.toLowerCase().includes(q) || cat.description.toLowerCase().includes(q) || cat.services.some(s => s.name.toLowerCase().includes(q));
-                    }).map(cat => (
-                      <button
-                        key={cat.id}
-                        onClick={() => selectCategory(cat.id)}
-                        className={`w-full flex items-center gap-4 p-4 rounded-xl border text-left transition-all ${
-                          activeService?.categoryId === cat.id
-                            ? "border-primary bg-primary/10 shadow-soft"
-                            : "border-border hover:border-primary/30"
-                        }`}
-                      >
-                        <div className={`w-12 h-12 rounded-xl ${cat.color} flex items-center justify-center shrink-0`}>
-                          <cat.icon className="w-6 h-6" />
-                        </div>
-                        <div>
-                          <div className="text-sm font-semibold text-foreground">{cat.label}</div>
-                          <div className="text-xs text-muted-foreground mt-0.5">{cat.description}</div>
-                        </div>
-                        {activeService?.categoryId === cat.id && <CheckCircle2 className="w-5 h-5 text-primary ml-auto shrink-0" />}
-                      </button>
-                    ))}
-                  </div>
                 </div>
               )}
 
