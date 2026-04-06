@@ -25,6 +25,8 @@ const CustomerDashboard = () => {
   const [ratingBookingId, setRatingBookingId] = useState<string | null>(null);
   const [ratingValue, setRatingValue] = useState(0);
   const [feedback, setFeedback] = useState("");
+  const [expandedPartner, setExpandedPartner] = useState<string | null>(null);
+  const [partnerProfiles, setPartnerProfiles] = useState<Record<string, any>>({});
 
   useEffect(() => {
     if (user) {
