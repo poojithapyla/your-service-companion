@@ -132,17 +132,64 @@ const CustomerDashboard = () => {
                   {booking.address && <div className="flex items-center gap-1.5 col-span-2"><MapPin className="w-3.5 h-3.5" /> {booking.address}</div>}
                 </div>
 
-                {/* Show partner details once accepted */}
-                {["accepted", "in_progress", "completed"].includes(booking.status) && booking.assigned_partner_name && (
-                  <div className="bg-accent/5 rounded-lg p-3 border border-accent/20 space-y-1.5">
-                    <p className="text-xs font-medium text-accent">Partner Assigned</p>
-                    <div className="flex items-center gap-1.5 text-xs text-foreground">
-                      <User className="w-3.5 h-3.5 text-muted-foreground" /> {booking.assigned_partner_name}
-                    </div>
-                    {booking.assigned_partner_phone && (
-                      <div className="flex items-center gap-1.5 text-xs text-foreground">
-                        <Phone className="w-3.5 h-3.5 text-muted-foreground" />
-                        <a href={`tel:${booking.assigned_partner_phone}`} className="text-primary hover:underline">{booking.assigned_partner_phone}</a>
+                {/* View Partner Details button */}
+                {["accepted", "in_progress", "completed"].includes(booking.status) && booking.assigned_partner_id && (
+                  <div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full"
+                      onClick={async () => {
+                        if (expandedPartner === booking.id) {
+                          setExpandedPartner(null);
+                          return;
+                        }
+                        setExpandedPartner(booking.id);
+                        if (!partnerProfiles[booking.assigned_partner_id]) {
+                          const { data } = await supabase
+                            .from("profiles")
+                            .select("full_name, phone, saved_address, spoken_languages")
+                            .eq("id", booking.assigned_partner_id)
+                            .single();
+                          if (data) setPartnerProfiles(prev => ({ ...prev, [booking.assigned_partner_id]: data }));
+                        }
+                      }}
+                    >
+                      <User className="w-3.5 h-3.5 mr-1" />
+                      View Partner Details
+                      {expandedPartner === booking.id ? <ChevronUp className="w-3.5 h-3.5 ml-auto" /> : <ChevronDown className="w-3.5 h-3.5 ml-auto" />}
+                    </Button>
+                    {expandedPartner === booking.id && (
+                      <div className="mt-2 bg-accent/5 rounded-lg p-3 border border-accent/20 space-y-1.5 animate-in slide-in-from-top-2">
+                        <p className="text-xs font-medium text-accent">Partner Details</p>
+                        {(partnerProfiles[booking.assigned_partner_id] || booking) && (
+                          <>
+                            <div className="flex items-center gap-1.5 text-xs text-foreground">
+                              <User className="w-3.5 h-3.5 text-muted-foreground" />
+                              {partnerProfiles[booking.assigned_partner_id]?.full_name || booking.assigned_partner_name}
+                            </div>
+                            {(partnerProfiles[booking.assigned_partner_id]?.phone || booking.assigned_partner_phone) && (
+                              <div className="flex items-center gap-1.5 text-xs text-foreground">
+                                <Phone className="w-3.5 h-3.5 text-muted-foreground" />
+                                <a href={`tel:${partnerProfiles[booking.assigned_partner_id]?.phone || booking.assigned_partner_phone}`} className="text-primary hover:underline">
+                                  {partnerProfiles[booking.assigned_partner_id]?.phone || booking.assigned_partner_phone}
+                                </a>
+                              </div>
+                            )}
+                            {partnerProfiles[booking.assigned_partner_id]?.saved_address && (
+                              <div className="flex items-center gap-1.5 text-xs text-foreground">
+                                <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
+                                {partnerProfiles[booking.assigned_partner_id].saved_address}
+                              </div>
+                            )}
+                            {partnerProfiles[booking.assigned_partner_id]?.spoken_languages?.length > 0 && (
+                              <div className="flex items-center gap-1.5 text-xs text-foreground">
+                                <Languages className="w-3.5 h-3.5 text-muted-foreground" />
+                                {partnerProfiles[booking.assigned_partner_id].spoken_languages.join(", ")}
+                              </div>
+                            )}
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
