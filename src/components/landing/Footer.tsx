@@ -49,7 +49,7 @@ const Footer = () => {
           </div>
         </div>
         <div className="border-t border-background/10 pt-6 flex items-center justify-between text-sm text-background/30">
-          <span>© {new Date().getFullYear()} ServiBook. All rights reserved.</span>
+          <span>© {new Date().getFullYear()} ServiBook. {t("footer.rights")}</span>
           <Link to="/admin" className="text-background/15 hover:text-background/30 transition-colors text-xs">Admin</Link>
         </div>
       </div>

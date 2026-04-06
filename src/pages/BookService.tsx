@@ -438,7 +438,11 @@ const BookService = () => {
                     </div>
                   )}
                   <div className="space-y-3">
-                    {categories.map(cat => (
+                    {categories.filter(cat => {
+                      if (!serviceSearch.trim()) return true;
+                      const q = serviceSearch.toLowerCase();
+                      return cat.label.toLowerCase().includes(q) || cat.description.toLowerCase().includes(q) || cat.services.some(s => s.name.toLowerCase().includes(q));
+                    }).map(cat => (
                       <button
                         key={cat.id}
                         onClick={() => selectCategory(cat.id)}
