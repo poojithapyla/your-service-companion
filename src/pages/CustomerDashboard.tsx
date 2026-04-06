@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Calendar, Clock, CheckCircle2, Star, MapPin, XCircle,
-  ArrowLeft, LogOut, Plus, Phone, User, IndianRupee
+  ArrowLeft, LogOut, Plus, Phone, User, IndianRupee, ChevronDown, ChevronUp, Languages
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
